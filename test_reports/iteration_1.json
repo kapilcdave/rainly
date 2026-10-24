@@ -1,0 +1,44 @@
+{
+  "summary": "First full E2E run of RainCheck. Backend: 23/24 pytest pass (markets, auth, business CRUD + user scoping, AI profile draft, paper positions, dashboard stats, kalshi creds validation, mode=kalshi without creds -> 400). Frontend: landing + live ticker, protected-route redirects, onboarding (sample chip -> AI draft -> edit -> save -> /business/:id -> AI report with 2 risk cards + 2 hedge cards), hedge sheet (title, settlement rules, YES/NO toggle, loss input, coverage slider, calc cost=contracts*price, payout=contracts), paper trade toast + appears on business page and dashboard, stats update ($100->$200), paper delete, markets (city select, rain tab filter, search, empty state, row opens sheet), settings (Demo preselected, invalid PEM error toast, Place-on-Kalshi hidden + connect link shown) all PASS. Real Kalshi order placement untested (no keys); code review found a likely blocking issue there.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/positions (mode=kalshi) -> kalshi.KalshiClient.buy", "issue": "Kalshi Create Order V2 (/portfolio/events/orders) lists `self_trade_prevention_type` (taker_at_cross|maker) as REQUIRED (https://docs.kalshi.com/api-reference/orders/create-order-v2). The request body in kalshi.py buy() leaves it out, so real orders will probably be rejected with a 400. Add \"self_trade_prevention_type\": \"taker_at_cross\".", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/positions", "issue": "An unknown or invalid ticker returns 500. kalshi.market_detail raises httpx.HTTPStatusError and nothing catches it. Wrap it like GET /markets/{ticker} does and return 404."},
+      {"endpoint": "POST /api/auth/logout", "issue": "Only reads the cookie, so a Bearer token session is not deleted (logout returns 200 but the token still works)."},
+      {"endpoint": "DELETE /api/businesses/{bid}", "issue": "Positions linked to the business are left behind with a dangling business_id."},
+      {"endpoint": "PositionIn", "issue": "loss_if_event has no ge=0 validation."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Onboarding sample chips", "issue": "Chip labels use s.split(',')[0]. Chip 0 shows a short label, but chips 1 and 2 show almost the whole sentence because their first comma comes late, so the chips look inconsistent.", "selector": "[data-testid^=sample-description-]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Hedge card vs hedge sheet price", "issue": "The hedge card shows the price stored with the report (e.g. 20¢, cost $64.00), while the sheet shows the live price (19¢, $60.80). This is expected after prices move, but it may confuse users. Consider labelling the card price 'as of report time'.", "affected_selectors": ["[data-testid=hedge-card-0]", "[data-testid=calc-cost]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_raincheck_api.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Add self_trade_prevention_type='taker_at_cross' to the Kalshi V2 order body in kalshi.py buy() (required field)",
+    "Catch httpx.HTTPStatusError in POST /api/positions market lookup -> 404",
+    "Logout: also delete the session when the token comes from the Authorization Bearer header",
+    "Optional: cascade or handle positions when a business is deleted; validate loss_if_event >= 0"
+  ],
+  "critical_code_review_comments": [
+    "kalshi.py buy(): V2 body is missing required self_trade_prevention_type. NO side is bought via ask at 1-no_ask, which matches the docs.",
+    "advisor.py uses model claude-sonnet-5-5. It responded correctly through the Emergent key during testing.",
+    "Kalshi credentials are encrypted with Fernet and private_key_enc is excluded from status responses. Good.",
+    "The AI report endpoint has no rate limit or concurrency guard. Repeated 'Refresh with live prices' clicks trigger expensive LLM calls (the button is disabled only while busy)."
+  ],
+  "updated_files": ["/app/backend/tests/test_raincheck_api.py"],
+  "success_rate": {"backend": "96% (23/24)", "frontend": "100% of requested flows"},
+  "test_credentials": "test_session_raincheck (test-user-1). Seeded second user test-user-2 with session test_session_raincheck_2 for scoping tests.",
+  "seed_data_creation": "Seeded test-user-2 and session test_session_raincheck_2 in test_database. A UI-created business e72744f85d8d was deleted afterwards; one paper position created via UI may remain for test-user-1 with business_id e72744f85d8d (the other was deleted in the dashboard test).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: REACT_APP_BACKEND_URL=<url> pytest /app/backend/tests/test_raincheck_api.py. Set the session cookie on domain hedgeshield-1.preview.emergentagent.com for UI tests. AI draft takes ~5-15s and the report ~30-60s. Real Kalshi orders were not tested.",
+  "rca of the issue": "POST /positions 500: open_position calls kalshi.market_detail(fresh=True) -> public_get -> r.raise_for_status() raises httpx.HTTPStatusError for an unknown ticker, and nothing catches it in the route."
+}

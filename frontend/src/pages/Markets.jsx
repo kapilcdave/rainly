@@ -10,14 +10,14 @@ import { WeatherIcon } from "@/components/WeatherIcon";
 import HedgeSheet from "@/components/HedgeSheet";
 
 const MarketRow = ({ m, onOpen }) => (
-  <button onClick={() => onOpen(m)} className="w-full text-left flex flex-wrap items-center gap-4 px-6 py-4 border-b border-slate-100 last:border-0 hover:bg-sky-50/50 transition-colors" data-testid={`market-row-${m.ticker}`}>
+  <button onClick={() => onOpen(m)} className="w-full text-left flex items-center gap-3 md:gap-4 px-4 md:px-6 py-4 border-b border-slate-100 last:border-0 hover:bg-sky-50/50 active:bg-sky-50 transition-colors" data-testid={`market-row-${m.ticker}`}>
     <WeatherIcon kind={m.kind} size={16} />
-    <div className="flex-1 min-w-[220px]">
+    <div className="flex-1 min-w-0">
       <div className="font-medium text-slate-900">{m.outcome}</div>
       <div className="text-xs text-slate-500">{m.title} · closes {closeLabel(m.close_time)}</div>
     </div>
-    <div className="w-20 text-right"><div className="text-xs text-slate-500">YES</div><div className="font-num font-semibold text-[#0F4C81]">{cents(m.yes_ask)}</div></div>
-    <div className="w-20 text-right"><div className="text-xs text-slate-500">NO</div><div className="font-num font-semibold text-slate-700">{cents(m.no_ask)}</div></div>
+    <div className="w-12 md:w-20 text-right"><div className="text-xs text-slate-500">YES</div><div className="font-num font-semibold text-[#0F4C81]">{cents(m.yes_ask)}</div></div>
+    <div className="w-12 md:w-20 text-right"><div className="text-xs text-slate-500">NO</div><div className="font-num font-semibold text-slate-700">{cents(m.no_ask)}</div></div>
   </button>
 );
 
@@ -54,7 +54,7 @@ export default function Markets() {
           <SelectTrigger className="w-48 bg-white" data-testid="markets-city-select"><SelectValue /></SelectTrigger>
           <SelectContent>{cities.map((c) => <SelectItem key={c.city} value={c.city}>{c.city}</SelectItem>)}</SelectContent>
         </Select>
-        <Tabs value={kind} onValueChange={setKind}>
+        <Tabs value={kind} onValueChange={setKind} className="max-w-full overflow-x-auto">
           <TabsList data-testid="markets-kind-tabs">
             <TabsTrigger value="all" data-testid="kind-tab-all">All</TabsTrigger>
             {kinds.map((k) => <TabsTrigger key={k} value={k} data-testid={`kind-tab-${k}`}>{KIND_NAMES[k]}</TabsTrigger>)}

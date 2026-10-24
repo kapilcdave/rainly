@@ -101,6 +101,8 @@ async def me(user: dict = Depends(current_user)):
 @api.post("/auth/logout")
 async def logout(request: Request, response: Response):
     token = request.cookies.get("session_token")
+    auth = request.headers.get("Authorization", "")
+    token = token or (auth[7:] if auth.startswith("Bearer ") else None)
     if token:
         await db.user_sessions.delete_one({"session_token": token})
     response.delete_cookie("session_token", path="/", secure=True, samesite="none")
@@ -210,6 +212,7 @@ async def update_business(bid: str, body: BusinessIn, user: dict = Depends(curre
 async def delete_business(bid: str, user: dict = Depends(current_user)):
     await get_biz(bid, user)
     await db.businesses.delete_one({"id": bid})
+    await db.positions.update_many({"business_id": bid, "user_id": user["user_id"]}, {"$set": {"business_id": None}})
     return {"ok": True}
 
 
@@ -309,7 +312,7 @@ class PositionIn(BaseModel):
     contracts: int = Field(ge=1, le=100000)
     mode: Literal["paper", "kalshi"] = "paper"
     business_id: Optional[str] = None
-    loss_if_event: float = 0
+    loss_if_event: float = Field(default=0, ge=0)
     headline: str = ""
     client_order_id: Optional[str] = None
 
@@ -329,7 +332,10 @@ def _fill_count(resp: dict):
 async def open_position(body: PositionIn, user: dict = Depends(current_user)):
     if body.business_id:
         await get_biz(body.business_id, user)
-    m = await kalshi.market_detail(body.ticker, fresh=True)
+    try:
+        m = await kalshi.market_detail(body.ticker, fresh=True)
+    except httpx.HTTPStatusError:
+        raise HTTPException(404, "Market not found")
     if m["status"] not in ("active", "open"):
         raise HTTPException(400, "This market is no longer open")
     price = m["yes_ask"] if body.side == "yes" else m["no_ask"]

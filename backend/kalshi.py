@@ -184,5 +184,6 @@ class KalshiClient:
             "post_only": False,
             "reduce_only": False,
             "cancel_order_on_pause": True,
+            "self_trade_prevention_type": "taker_at_cross",
         }
         return await self.request("POST", "/portfolio/events/orders", json=body)

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, errMsg, usd, cents, closeLabel } from "@/lib/api";
 import { WeatherIcon } from "@/components/WeatherIcon";
+import { useIsSmallScreen } from "@/lib/pwa";
 
 const Stat = ({ label, value, tone = "text-slate-900", testid, hint }) => (
   <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -45,6 +46,7 @@ const useKalshiStatus = (open) => {
 };
 
 export default function HedgeSheet({ open, onOpenChange, ticker, defaults = {}, onPlaced }) {
+  const small = useIsSmallScreen();
   const [market, setMarket] = useState(null);
   const [side, setSide] = useState("yes");
   const [loss, setLoss] = useState(500);
@@ -97,7 +99,12 @@ export default function HedgeSheet({ open, onOpenChange, ticker, defaults = {}, 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto" data-testid="hedge-sheet">
+      <SheetContent
+        side={small ? "bottom" : "right"}
+        className={small ? "max-h-[92vh] overflow-y-auto rounded-t-3xl px-5 pb-[calc(env(safe-area-inset-bottom)+24px)]" : "w-full sm:max-w-xl overflow-y-auto"}
+        data-testid="hedge-sheet"
+      >
+        {small && <div className="mx-auto -mt-2 mb-4 h-1.5 w-10 rounded-full bg-slate-300" />}
         {!market ? (
           <div className="space-y-4 mt-8"><Skeleton className="h-8 w-3/4" /><Skeleton className="h-40" /><Skeleton className="h-24" /></div>
         ) : (

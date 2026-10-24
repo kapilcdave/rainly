@@ -31,7 +31,8 @@ const HedgeCard = ({ h, i, onOpen }) => {
         <div><div className="text-xs text-slate-500">Cost</div><div className="font-num font-semibold">{usd(contracts * h.price, 2)}</div></div>
         <div><div className="text-xs text-slate-500">Pays</div><div className="font-num font-semibold text-emerald-600">{usd(contracts)}</div></div>
       </div>
-      <Button className="mt-6 rounded-full bg-[#0F4C81] hover:bg-[#0A3860]" onClick={() => onOpen(h)} data-testid={`review-hedge-button-${i}`}>
+      <p className="text-xs text-slate-400 mt-2">Prices as of the report. Live price shown when you review.</p>
+      <Button className="mt-4 rounded-full bg-[#0F4C81] hover:bg-[#0A3860]" onClick={() => onOpen(h)} data-testid={`review-hedge-button-${i}`}>
         <ShieldCheck size={16} className="mr-2" /> Review this hedge
       </Button>
     </div>

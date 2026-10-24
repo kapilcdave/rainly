@@ -71,7 +71,7 @@ export default function Onboarding() {
         <div className="flex flex-wrap gap-2">
           {SAMPLES.map((s, i) => (
             <button key={i} onClick={() => setDesc(s)} className="text-xs rounded-full border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-sky-50 hover:border-sky-200 transition-colors" data-testid={`sample-description-${i}`}>
-              {s.split(",")[0]}
+              {["Ice cream shop · Chicago", "Rooftop bar · Seattle", "Landscaper · Denver"][i]}
             </button>
           ))}
         </div>
