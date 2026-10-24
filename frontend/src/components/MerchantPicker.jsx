@@ -8,7 +8,7 @@ export const MerchantPicker = () => {
     <Select value={merchant?.id || ""} onValueChange={setSelectedId}>
       <SelectTrigger
         data-testid="merchant-switcher-select"
-        className="h-8 w-[160px] rounded-full border-white/10 bg-white/[0.03] text-xs text-zinc-200 sm:w-[230px]"
+        className="h-8 w-[160px] rounded-full border-white/10 bg-white/[0.03] text-xs text-zinc-200 sm:w-[290px] [&>span]:truncate"
       >
         <span className="mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
         <SelectValue placeholder="Pick merchant" />

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { usd } from "@/lib/api";
 
 const MODE_STYLE = {
@@ -6,7 +7,10 @@ const MODE_STYLE = {
   seed: "text-zinc-500",
 };
 
-export const HedgeLog = ({ orders }) => (
+export const HedgeLog = ({ orders: all }) => {
+  const [showAll, setShowAll] = useState(false);
+  const orders = showAll ? all : all.slice(0, 10);
+  return (
   <div data-testid="hedge-order-log" className="overflow-x-auto">
     <table className="w-full min-w-[580px] text-left text-[13px]">
       <thead>
@@ -37,5 +41,11 @@ export const HedgeLog = ({ orders }) => (
         ))}
       </tbody>
     </table>
+    {all.length > 10 && (
+      <button data-testid="hedge-log-toggle-all" onClick={() => setShowAll((s) => !s)} className="mt-4 text-xs text-sky-400 hover:text-sky-300">
+        {showAll ? "Show fewer" : `Show all ${all.length} orders`}
+      </button>
+    )}
   </div>
-);
+  );
+};

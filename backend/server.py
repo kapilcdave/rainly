@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
-from fastapi import APIRouter, FastAPI, HTTPException  # noqa: E402
+from fastapi import APIRouter, FastAPI, HTTPException, Query  # noqa: E402
 from motor.motor_asyncio import AsyncIOMotorClient  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 from starlette.middleware.cors import CORSMiddleware  # noqa: E402
@@ -171,12 +171,13 @@ async def ticker():
 
 
 @api.get("/quote")
-async def quote(city: str, product: Literal["daily", "weekend"], date: date, booking_value: float):
+async def quote(city: str, product: Literal["daily", "weekend"], date: date,
+                booking_value: float = Query(gt=0, le=10000)):
     return await build_quote(city, product, date, booking_value)
 
 
 @api.get("/checkout/options")
-async def checkout_options(merchant_id: str, booking_value: float | None = None):
+async def checkout_options(merchant_id: str, booking_value: float | None = Query(None, gt=0, le=10000)):
     m = await get_merchant(merchant_id)
     bv = booking_value or m["avg_booking"]
     opts = await asyncio.gather(*[build_quote(m["city"], p, d, bv) for p, d in checkout_dates(date.today())])
@@ -185,6 +186,8 @@ async def checkout_options(merchant_id: str, booking_value: float | None = None)
 
 @api.get("/orderbook/{ticker}")
 async def orderbook(ticker: str):
+    if not await kalshi.market(ticker):
+        raise HTTPException(404, "Market not found")
     book = await kalshi.orderbook(ticker)
     return {"ticker": ticker, "asks": book["asks"][:12], "bids": book["bids"][:12]}
 
@@ -283,7 +286,7 @@ async def replay(ticker: str, bookings: int = 40, booking_value: float = 45):
     refunds = round(bookings * booking_value, 2) if rained else 0.0
     payout = float(bookings * pr["contracts"]) if rained else 0.0
     return {"ticker": ticker, "title": mk.get("title"), "result": mk["result"], "rules_primary": mk.get("rules_primary"),
-            "city": mk.get("yes_sub_title"), "p": p, **pr, "bookings": bookings, "booking_value": booking_value,
+            "city": mk.get("yes_sub_title"), "p": p, **pr, "offered": p <= 0.60, "bookings": bookings, "booking_value": booking_value,
             "premium": premium, "hedge_cost": hedge, "refunds": refunds, "hedge_payout": payout,
             "net": round(premium - hedge + payout - refunds, 2), "settled": mk.get("settlement_ts")}
 

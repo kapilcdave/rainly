@@ -1,0 +1,41 @@
+{
+  "summary": "First full run (backend + frontend at 375px and 1920px) against live Kalshi data, Sat 2026-10-24. Backend: 22/23 pytest pass (19 existing + 4 added); the 1 failure is a minor validation gap in /api/quote. Frontend: landing hero, 3 how-steps and the 5-city ticker work. Merchant picker switching works. Onboarding works (35 live cities, TEST_Truck created, redirects to /checkout with it selected). Checkout works: chips, formula-correct quote, 'Opens Monday', 'Not listed yet', Miami 'High rain chance' with the toggle disabled, Chicago weekend thin-depth warning (5 contracts at <= $0.10 vs 45 needed) with confirm disabled until 'Try anyway' is checked, simulated hedge, confirmation screen and toast, and the official trigger text. Dashboard works: KPIs, P&L cards, live market card, depth chart, hedge log; Bayfront shows 12 refunded and realized $64.20. Replay works: YES/NO columns, selects, replay button and merchant switch. No horizontal overflow at 375px and no console errors. Found 1 real UX/integration bug and 1 business-logic inconsistency.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/quote", "issue": "booking_value has no validation. booking_value=-5 returns available=true, contracts=-5, price=$1.00. booking_value=0 returns contracts=0. Add a gt=0 constraint (Query(gt=0, le=10000)). POST /api/guarantees already validates correctly (422)."},
+      {"endpoint": "GET /api/orderbook/{ticker}", "issue": "An unknown ticker returns 200 with empty asks/bids instead of 404."},
+      {"endpoint": "GET /api/replay/{ticker}", "issue": "Replay prices markets above the 60% cap that the live product would never sell. Examples: KXRAINWKND-26SEP12-CHI priced at $0.99 (refund $53.50 on a $45 booking) and 26SEP19 at $0.69. Either flag these as 'not offered' or exclude p>0.60 from the replay list so the replay is consistent with the real product rules."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout Confirmed -> 'New booking'", "issue": "Resetting only clears `result`. The toggle `on`, `thinOk` and the customer name keep the previous booking's values. Clicking 'Confirm booking' again silently buys a second guarantee and hedge for the previous customer. Reproduced: TEST_Cust2 got 2 guarantees and 2 orders on KXRAIN-26OCT25-CHI. Fix: onReset should also setOn(false), setThinOk(false), setName('').", "selector": "[data-testid='checkout-new-booking-btn']", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Header merchant picker (desktop 230px)", "issues": ["Long labels are cut off ('Maria's Patio Taqueria · Chicag'). Consider a wider trigger or ellipsis."]},
+      {"screen": "Dashboard hedge order log", "issues": ["Renders up to 100 rows (40 identical seed rows for Maria) with no pagination or collapse, so the page is very long."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_rainsure_api.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Checkout: reset on/thinOk/name in the 'New booking' handler, to prevent duplicate hedges (HIGH)",
+    "Add gt=0 validation for booking_value on GET /api/quote and /api/checkout/options",
+    "Replay: handle markets with historical p > 0.60 (exclude them or show 'not offered') so the replay matches the product rules",
+    "Optional: return 404 from /api/orderbook/{ticker} for unknown tickers"
+  ],
+  "critical_code_review_comments": [
+    "server.py uses date.today() (container UTC) to choose 'today' and weekend dates. After about 7pm US Central, 'today' moves to the next day for US cities. Consider using the merchant's local timezone.",
+    "Replay.jsx Column: `useEffect(() => setTicker(list[0]), [list])` depends on a filtered array that is rebuilt on every parent render. Any re-render of Replay resets the user's selected date. It did not reproduce on window focus, but it is fragile; memoize yes/no with useMemo.",
+    "The dashboard calls settle_open_guarantees() on every request, so each distinct active ticker hits Kalshi (60s cache). Fine at this scale, but the background loop already does this.",
+    "The test file creates TEST_ merchants with no teardown. Previous runs left 3 'TEST_Chicago Patio' merchants (cleaned up now)."
+  ],
+  "updated_files": ["/app/backend/tests/test_rainsure_api.py (appended 4 tests: orderbook, high-rain 409, negative booking 422, quote negative validation)"],
+  "success_rate": {"backend": "96% (22/23)", "frontend": "95% (all flows pass; 1 state-reset bug)"},
+  "test_credentials": "None needed (no login). /app/memory/test_credentials.md is a template only.",
+  "seed_data_creation": "None kept. After testing I deleted all TEST_ merchants (5) and all guarantees/orders that belong to TEST_ merchants or have TEST_-prefixed customer names (7 each). That includes the earlier 'TEST_UI Customer' on Maria. DB now has 2 merchants and 52 guarantees/orders (40 Maria seed + 12 Bayfront seed).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Live Kalshi data: on 2026-10-24, Chicago weekend ask was 0.07 with thin depth (about 5-10 contracts at <= p+0.03); Miami weekend 0.94 and Miami Sun daily 0.93 (high rain); Chicago daily 0.01/0.03 with deep books. A fresh browser context has no localStorage, so it defaults to Maria (the first merchant). Select a TEST merchant via merchant-switcher-select before confirming, to avoid polluting seed data. pytest.ini adds xdist flags, so don't pass -p no:xdist. Retest: the checkout 'New booking' reset and the /api/quote validation."
+}

@@ -172,7 +172,7 @@ export default function Checkout() {
           <p className="mt-1.5 text-xl font-medium tracking-tight text-white" data-testid="checkout-merchant-name">{merchant.name}</p>
         </div>
         <div className="space-y-5 p-5">
-          {result ? <Confirmed result={result} onReset={() => setResult(null)} /> : (
+          {result ? <Confirmed result={result} onReset={() => { setResult(null); setOn(false); setThinOk(false); setName(""); }} /> : (
             <>
               <div className="flex gap-2">
                 <Input data-testid="checkout-customer-name-input" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="h-10 border-white/10 bg-transparent" />

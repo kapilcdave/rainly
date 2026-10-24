@@ -216,3 +216,43 @@ def test_replay(s):
 
 def test_replay_bad_ticker(s):
     assert s.get(f"{API}/replay/KXRAIN-NOPE", timeout=T).status_code == 404
+
+
+# Orderbook + high-rain rejection + input validation (added by testing agent iteration_1)
+def test_orderbook_live(s):
+    sat = _sat(date.today())
+    q = s.get(f"{API}/quote", params={"city": "Chicago", "product": "weekend", "date": sat.isoformat(),
+                                      "booking_value": 45}, timeout=T).json()
+    if not q.get("ticker"):
+        pytest.skip("no market")
+    d = s.get(f"{API}/orderbook/{q['ticker']}", timeout=T).json()
+    assert d["ticker"] == q["ticker"]
+    assert isinstance(d["asks"], list) and len(d["asks"]) <= 12
+    if d["asks"]:
+        prices = [a[0] for a in d["asks"]]
+        assert prices == sorted(prices)
+
+
+def test_guarantee_high_rain_409(s, merchants):
+    bay = merchants["Bayfront Boat Tours"]
+    opts = s.get(f"{API}/checkout/options", params={"merchant_id": bay["id"]}, timeout=T).json()["options"]
+    hi = next((o for o in opts if (o["reason"] or "").startswith("High rain")), None)
+    if not hi:
+        pytest.skip("no high-rain market right now")
+    r = s.post(f"{API}/guarantees", json={"merchant_id": bay["id"], "product": hi["product"], "date": hi["date"],
+                                           "customer_name": "TEST_hi", "booking_value": 85}, timeout=T)
+    assert r.status_code == 409 and r.json()["detail"].startswith("High rain")
+
+
+def test_guarantee_bad_booking_value_422(s, merchants):
+    m = merchants["Maria's Patio Taqueria"]
+    r = s.post(f"{API}/guarantees", json={"merchant_id": m["id"], "product": "daily", "date": date.today().isoformat(),
+                                           "customer_name": "TEST_neg", "booking_value": -5}, timeout=T)
+    assert r.status_code == 422
+
+
+def test_quote_negative_booking_rejected(s):
+    # Known issue: /api/quote accepts negative booking_value and returns available=True, contracts<0
+    r = s.get(f"{API}/quote", params={"city": "Chicago", "product": "daily", "date": date.today().isoformat(),
+                                      "booking_value": -5}, timeout=T)
+    assert r.status_code == 422 or r.json().get("available") is False
