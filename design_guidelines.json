@@ -1,0 +1,159 @@
+{
+  "app_name": "Rainly",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A clean, reliable, and friendly fintech interface that turns weather risk into a clear, approachable guarantee.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#111827",
+    "surfaceSecondary": "#F3F4F6",
+    "onSurfaceSecondary": "#374151",
+    "surfaceTertiary": "#EBF5FF",
+    "onSurfaceTertiary": "#1E3A8A",
+    "surfaceInverse": "#111827",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#2563EB",
+    "brandPrimary": "#2563EB",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#DBEAFE",
+    "onBrandSecondary": "#1E40AF",
+    "brandTertiary": "#EFF6FF",
+    "onBrandTertiary": "#2563EB",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F59E0B",
+    "onWarning": "#FFFFFF",
+    "error": "#EF4444",
+    "onError": "#FFFFFF",
+    "info": "#3B82F6",
+    "onInfo": "#FFFFFF",
+    "border": "#E5E7EB",
+    "borderStrong": "#D1D5DB",
+    "divider": "#F3F4F6",
+    "muted": "#6B7280"
+  },
+  "typography": {
+    "displayFontFamily": "Space Grotesk",
+    "textFontFamily": "Plus Jakarta Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous vertical breathing room. Use 'md' or 'lg' for layout gaps. Large numbers get extra isolation to emphasize metrics. Use 8px grid foundation.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "stack_only",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use glass for sticky header over scrolling content",
+      "Apply glass overlay on the hero featured image card",
+      "Use blur on modal scrim entries for the settlement replay"
+    ],
+    "dont's": [
+      "Never apply glass to form fields or standard list rows",
+      "Avoid on data-heavy numeric portions of the Merchant Dashboard to preserve clarity"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Landing",
+      "purpose": "Introduce the value proposition, how it works, and show a live ticker of city rain odds.",
+      "states": {
+        "loading": "Skeleton text and blank hero card",
+        "empty": "N/A - static marketing content",
+        "error": "Failed to load ticker data, show 'Live odds unavailable' fallback"
+      },
+      "layout": "Scrollable. Top: Hero section featuring a blurred background photo overlay with strong value proposition 'Rain shouldn't cost you customers'. Middle: 3 stacked cards for 'How it works' (clean, vertical stack). Bottom: A horizontally scrolling live ticker pill-row displaying 5 cities with % odds. Sticky bottom primary CTA 'Get Started'."
+    },
+    {
+      "name": "MerchantOnboarding",
+      "purpose": "Collect merchant details seamlessly.",
+      "states": {
+        "loading": "Spinner on submit",
+        "empty": "N/A",
+        "error": "Validation errors below respective inputs"
+      },
+      "layout": "Single column form list. Large clear labels above inputs. Native pickers for Business Type and City. A persistent, sticky CTA at the bottom inside KeyboardAvoidingView."
+    },
+    {
+      "name": "CustomerCheckoutWidget",
+      "purpose": "A simulated environment showcasing what the customer sees at checkout.",
+      "states": {
+        "loading": "Skeleton of the widget",
+        "empty": "N/A",
+        "error": "Widget load failure, Retry button"
+      },
+      "layout": "Centered simulated phone screen/card. Inside: A polished widget container (surfaceTertiary background if active). Displays 'Rain chance 12% · Rain refund $5.70' in strong typography, a trailing switch/toggle, and subtle trigger text below. Incorporates a small umbrella or rain icon from Phosphor."
+    },
+    {
+      "name": "MerchantDashboard",
+      "purpose": "Provide a live operational view of risk, P&L, and market depth for the merchant.",
+      "states": {
+        "loading": "Full screen skeleton prioritizing the top numbers",
+        "empty": "Illustration of a sunny day, 'No active guarantees sold yet' + 'View setup' CTA",
+        "error": "Data fetch error with Retry CTA"
+      },
+      "layout": "Fintech dashboard structure. Top: Large 'Guarantees Sold' and 'Contracts Held' metrics (Space Grotesk, largest font scale). Middle: 2-column flex-wrap grid for 'If it rains' / 'If it doesn't' P&L cards. Lower Middle: Live price and order book depth (compact list style). Bottom: Hedge order log."
+    },
+    {
+      "name": "SettlementReplay",
+      "purpose": "Educate the merchant by animating a past market settlement event.",
+      "states": {
+        "loading": "Spinner",
+        "empty": "N/A",
+        "error": "Failed to load replay data"
+      },
+      "layout": "Focus-oriented screen. Date picker at the top. The center contains a visual sequence/timeline that lights up sequentially (using reanimated): Market Settled -> N Refunds Issued -> Hedge Payout. Big numbers, distinct states (success green for payout, default grey for pending)."
+    }
+  ],
+  "images": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1571535366901-3244028cba2d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwxfHxyYWlueSUyMGNhZmUlMjBwYXRpb3xlbnwwfHx8fDE3OTI4NzI1NTR8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Rainy cafe patio with brick wall and greenery"
+    },
+    "merchant_event": {
+      "url": "https://images.unsplash.com/photo-1788416299417-3eae8ccb7bc2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGN1c3RvbWVyJTIwb3V0ZG9vciUyMGV2ZW50fGVufDB8fHx8MTc5Mjg3MjU1NHww&ixlib=rb-4.1.0&q=85",
+      "alt": "Customer using payment terminal at an outdoor event"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the 'iOS-Native Clean' personality constraints. The user explicitly requested a 'rain/blue palette', so the primary brand color is a trustworthy vibrant blue (#2563EB). Use this as an accent against clean white backgrounds.",
+    "Utilize 'Space Grotesk' for all large numbers and metrics in the Merchant Dashboard and Checkout Widget to give it a modern fintech look, while using 'Plus Jakarta Sans' for labels and body text.",
+    "Make sure the Customer Checkout Widget is rendered cleanly as a mock phone frame or a prominent card in its own screen to simulate the B2B2C offering.",
+    "For the Merchant Dashboard, rely on fintech patterns: largest visual weight at the top for primary metrics, 2-column grid for the P&L scenario cards, and a clean list for the order book depth.",
+    "Settlement replay must be an interactive animation. Use react-native-reanimated to sequence the 'Market settled' -> 'Refunds' -> 'Payout' timeline.",
+    "Remember to implement the Pitch Footer ('Settled on official Weather Company... Kalshi') as a fixed or bottom-scrolling element on the Landing and Dashboard screens. Keep the text muted.",
+    "Ensure the hero image has a top-to-bottom linear gradient scrim when text is placed over it to guarantee WCAG contrast ratios."
+  ]
+}

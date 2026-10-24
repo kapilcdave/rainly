@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 1 tests for Rainly. Backend: 18 of 21 pytest cases pass. All core endpoints work against live Kalshi data: ticker (5 cities), cities (35), meta (mock mode, max_p 0.6, 4 date options), quote, merchants CRUD and validation, dashboard (stats, P&L math, live market, orderbook, orders), guarantees (mock hedge fill, Miami 400 'High rain risk — not offered', p=0.96), replay list (11 YES / 29 NO for Chicago) and replay detail for YES (KXRAIN-26OCT16-CHI) and NO tickers. The quote formula matches the spec (p=0.05, bv=60 gives $3.84). The 3 failures are input-validation gaps. Frontend at 375x667: everything requested works. Covered: landing (hero, 5-city ticker, how-it-works steps, Open demo button), merchants picker, dashboard (metrics, P&L cards, live market, 8 orderbook asks, order log, 'Mock fills' badge), checkout (4 date chips including 'Opens Monday' next weekend, booking input reprices live, toggle, total, confirm, success screen with hedge confirmation, dashboard count 41 to 42), Bayfront checkout (reason shown, Switch input disabled), replay (yes/no filters, date chips, steps 1-3, net result, run again) and onboarding (inline validation, city picker modal with search, margin, lands on new dashboard). No console errors. No deprecated Expo packages found (no expo-av or expo-barcode-scanner). Safe area uses useSafeAreaInsets and keyboard handling uses KeyboardAwareScrollView, which is fine.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/quote", "issue": "Invalid date_str (e.g. 'bad') returns 500. date.fromisoformat raises ValueError, which is not caught. Should return 400/422."},
+      {"endpoint": "GET /api/quote", "issue": "booking_value is not validated: -10 returns 200 with available=true and negative contracts/hedge. Add Query(gt=0, le=10000). margin_pct and kind are also unvalidated."},
+      {"endpoint": "POST /api/guarantees", "issue": "kind is not validated: kind='monthly' is treated as daily and creates a real guarantee plus hedge order (kind stored as 'monthly'). Use Literal['weekend','daily']. An invalid date string also gives 500."},
+      {"endpoint": "kget() / all Kalshi-backed endpoints", "issue": "Kalshi 5xx, 429 or network errors call raise_for_status with no handler, so /ticker, /quote and /merchants/{id}/dashboard return 500. A stale cache entry is not used as a fallback. Also, when the event is missing, the weekend reason 'Opens Monday' is a guess."},
+      {"endpoint": "GET /api/meta date_options", "issue": "Weekend label across a month boundary reads 'Weekend Oct 31–1'. It should be 'Oct 31–Nov 1'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout success -> View dashboard", "issue": "router.replace(`/merchant/${id}`) from checkout puts a second dashboard instance on the stack: two [data-testid=metric-guarantees] exist in the DOM, and Back goes to the stale dashboard. Use router.back() or router.dismissTo(). Reference: app/merchant/[id]/checkout.tsx:124", "testID": "checkout-to-dashboard-button", "priority": "medium"},
+      {"component": "Checkout success screen", "issue": "The scroll offset is kept after confirm, so the 'You're covered' title and umbrella icon are off-screen at 375x667. The user sees the middle of the success card. Scroll to top when result is set.", "testID": "checkout-success", "priority": "low"},
+      {"component": "Dashboard P&L empty state", "issue": "Hedge cost shows '−$0.00' when there are no guarantees (Bayfront, new merchant).", "testID": "pnl-if-rains", "priority": "low"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Checkout", "issues": ["rain-refund-toggle Switch touch target is 40x20 (below 44x44). Wrap it in a larger Pressable or use hitSlop.", "Depth warning ('Only 13 contracts within 3¢') shows at the default $45–60 booking for Chicago, but the mock fill still fills the full count at the ask. Acceptable for mock mode, but the hedge log could flag depth_warning."]},
+      {"screen": "Replay", "issues": ["For Oct 16 the entry price was 74% (above the 60% cap). The UI shows the 'not offered' note but still presents 40 sold refunds and a +$271.20 net, which is contradictory. Consider showing a 'not offered' result instead, or defaulting to dates where would_offer is true."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_rainly_api.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Validate /api/quote params: booking_value gt=0 le=10000, kind Literal['weekend','daily'], date_str parsed with a try/except that returns 400.",
+    "Validate GuaranteeCreate.kind as Literal['weekend','daily'] and wrap date.fromisoformat so it returns 400.",
+    "Handle Kalshi upstream errors in kget: catch httpx errors and non-2xx responses, return the stale cache if present, and otherwise return a 502 with a friendly message instead of a 500.",
+    "Fix the weekend label across month boundaries (Oct 31–Nov 1).",
+    "Checkout 'View dashboard': use router.back() or dismissTo instead of replace, so the stack does not hold a duplicate dashboard.",
+    "Scroll the checkout to top when the success screen appears; increase the Switch hit area to at least 44px.",
+    "Optional: avoid '−$0.00'; make the replay outcome consistent with would_offer=false."
+  ],
+  "critical_code_review_comments": [
+    "server.py: no Kalshi error handling (raise_for_status bubbles up as a 500); _cache is in-process only.",
+    "server.py: settle_guarantees runs on every dashboard GET (1 Kalshi call per active ticker, cached 60s). Fine for a demo.",
+    "checkout.tsx: MathRow is declared inside the render function, so it is a new component type on every render (remounts). Move it to module scope.",
+    "checkout.tsx: the price shown can differ from the price charged, because POST /guarantees reprices server-side without a price-lock or quote id. A minor UX risk on fast-moving markets."
+  ],
+  "updated_files": ["/app/backend/tests/test_rainly_api.py"],
+  "success_rate": {"backend": "86% (18/21; failures are validation edge cases)", "frontend": "100% of requested flows functional; 3 minor UI bugs"},
+  "seed_data_creation": "None kept. Test guarantees (TEST_guest, TEST_PW, the bogus 'monthly' one), their orders and TEST_ merchants were deleted via /tmp/cleanup.py. Seeded merchants are untouched. Maria now has 41 guarantees, which was the count before testing.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Env var is EXPO_PUBLIC_BACKEND_URL (not EXPO_BACKEND_URL). Maria id 6add11451f0373a8576b5b40. Live data: Chicago weekend p≈0.05, Miami 0.96, Seattle 0.90. Next weekend shows 'Opens Monday'. Run: export $(grep EXPO_PUBLIC_BACKEND_URL /app/frontend/.env | xargs) && pytest /app/backend/tests/test_rainly_api.py. Note that test_create_guarantee_chicago_increments creates real DB rows, so clean them up afterwards.",
+  "rca_of_issue": "Validation 500s and 200s: FastAPI query params and GuaranteeCreate.kind are plain str/float with no constraints, and date.fromisoformat is called unguarded in quote() (server.py:374) and create_guarantee() (server.py:415)."
+}
