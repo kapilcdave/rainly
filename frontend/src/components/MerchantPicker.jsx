@@ -1,4 +1,3 @@
-import { Store } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMerchant } from "@/context/MerchantContext";
 
@@ -9,9 +8,9 @@ export const MerchantPicker = () => {
     <Select value={merchant?.id || ""} onValueChange={setSelectedId}>
       <SelectTrigger
         data-testid="merchant-switcher-select"
-        className="h-9 w-[170px] rounded-full border-sky-200 bg-sky-50 text-xs font-semibold text-[#0e487c] sm:w-[240px] sm:text-sm"
+        className="h-8 w-[160px] rounded-full border-white/10 bg-white/[0.03] text-xs text-zinc-200 sm:w-[230px]"
       >
-        <Store className="mr-1 h-4 w-4 shrink-0" />
+        <span className="mr-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
         <SelectValue placeholder="Pick merchant" />
       </SelectTrigger>
       <SelectContent>

@@ -9,23 +9,25 @@ export const OrderBookDepth = ({ ticker, ask }) => {
     enabled: !!ticker,
     refetchInterval: 15000,
   });
-  if (!ticker) return <p className="text-sm text-slate-500">No live market for this city right now.</p>;
-  const asks = (data?.asks || []).slice(0, 10).map(([p, s]) => ({ price: `$${p.toFixed(2)}`, p, size: s }));
+  if (!ticker) return <p className="text-sm text-zinc-500">No live market for this city right now.</p>;
+  const asks = (data?.asks || []).slice(0, 10).map(([p, s]) => ({ price: p.toFixed(2), p, size: s }));
   const limit = (ask || 0) + 0.03;
   return (
     <div data-testid="orderbook-depth">
-      <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
-        <span>YES asks (1 − NO bids)</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-sky-500" /> ≤ ask + 3¢</span>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="rs-label">YES ask depth</span>
+        <span className="flex items-center gap-1.5 text-[11px] text-zinc-500"><span className="h-1.5 w-1.5 rounded-full bg-sky-400" /> within ask + 3¢</span>
       </div>
-      <div className="h-48">
+      <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={asks} margin={{ left: -18, right: 4, top: 4 }}>
-            <XAxis dataKey="price" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip formatter={(v) => [`${Number(v).toLocaleString()} contracts`, "Size"]} />
-            <Bar dataKey="size" radius={[6, 6, 0, 0]}>
-              {asks.map((a) => <Cell key={a.price} fill={a.p <= limit + 1e-9 ? "#0ea5e9" : "#cbd5e1"} />)}
+          <BarChart data={asks} margin={{ left: -22, right: 0, top: 4 }}>
+            <XAxis dataKey="price" tick={{ fontSize: 10, fill: "#52525b" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: "#52525b" }} axisLine={false} tickLine={false} />
+            <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }}
+              contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 12 }}
+              formatter={(v) => [`${Number(v).toLocaleString()} contracts`, "Size"]} labelFormatter={(l) => `$${l}`} />
+            <Bar dataKey="size" radius={[3, 3, 0, 0]}>
+              {asks.map((a) => <Cell key={a.price} fill={a.p <= limit + 1e-9 ? "#38bdf8" : "#27272a"} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

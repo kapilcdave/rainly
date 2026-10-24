@@ -1,26 +1,26 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CloudRain, Sun, Undo2, Landmark, Wallet, Play, Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import { api, usd } from "@/lib/api";
 import { useMerchant } from "@/context/MerchantContext";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TriggerBox } from "@/components/TriggerBox";
 
 const BOOKINGS = 40;
 
-const Step = ({ i, icon: Icon, title, value, tone, run }) => (
+const Step = ({ i, title, value, dot, run }) => (
   <motion.div
     key={`${run}-${i}`}
-    initial={{ opacity: 0, x: -16 }}
-    animate={{ opacity: 1, x: 0 }}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
     transition={{ delay: i * 0.7, duration: 0.45 }}
-    className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4"
+    className="flex items-center gap-4 border-t border-white/[0.06] py-4"
   >
-    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${tone}`}><Icon className="h-5 w-5" /></span>
-    <p className="flex-1 text-sm font-semibold text-slate-700">{title}</p>
-    <p className="font-num text-xl font-extrabold text-[#091e36]">{value}</p>
+    <span className="font-num w-5 text-xs text-zinc-600">0{i + 1}</span>
+    <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+    <p className="flex-1 text-[13px] text-zinc-300">{title}</p>
+    <p className="font-num text-lg text-white">{value}</p>
   </motion.div>
 );
 
@@ -31,28 +31,25 @@ const Timeline = ({ ticker, value, testid }) => {
     queryFn: () => api.get(`/replay/${ticker}`, { params: { bookings: BOOKINGS, booking_value: value } }).then((r) => r.data),
     enabled: !!ticker,
   });
-  if (!ticker) return <p className="text-sm text-slate-500">No settled market of this kind for this city.</p>;
-  if (isLoading || !data) return <Loader2 className="h-5 w-5 animate-spin text-sky-600" />;
+  if (!ticker) return <p className="text-sm text-zinc-500">No settled market of this kind for this city.</p>;
+  if (isLoading || !data) return <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />;
   const yes = data.result === "yes";
   return (
-    <div data-testid={testid} className="space-y-3">
-      <p className="text-xs text-slate-500">{data.title} · priced at <span className="font-num">${data.p.toFixed(2)}</span> → refund {usd(data.price)} each</p>
-      <Step run={run} i={0} icon={yes ? CloudRain : Sun} tone={yes ? "bg-sky-100 text-sky-700" : "bg-yellow-100 text-yellow-700"}
-        title={`Market settled ${yes ? "YES — it rained" : "NO — stayed dry"}`} value={data.result.toUpperCase()} />
-      <Step run={run} i={1} icon={Undo2} tone="bg-rose-100 text-rose-600"
-        title={yes ? `${data.bookings} refunds issued` : "Refunds issued"} value={yes ? `−${usd(data.refunds, 0)}` : "$0"} />
-      <Step run={run} i={2} icon={Landmark} tone="bg-emerald-100 text-emerald-700"
-        title={yes ? `Hedge paid ${(data.bookings * data.contracts).toLocaleString()} × $1` : "Hedge expired worthless"} value={yes ? `+${usd(data.hedge_payout, 0)}` : "$0"} />
-      <motion.div key={`net-${run}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 2.1 }}
-        className={`flex items-center justify-between rounded-2xl p-5 ${yes ? "bg-[#0e487c] text-white" : "bg-yellow-300 text-[#091e36]"}`}>
-        <span className="flex items-center gap-2 text-sm font-bold"><Wallet className="h-5 w-5" /> Merchant net</span>
-        <span data-testid={`${testid}-net`} className="font-num text-3xl font-extrabold">{usd(data.net)}</span>
+    <div data-testid={testid}>
+      <p className="mb-4 text-xs font-light text-zinc-500">{data.title} · priced at <span className="font-num text-zinc-300">${data.p.toFixed(2)}</span> → refund {usd(data.price)} each</p>
+      <Step run={run} i={0} dot={yes ? "bg-sky-400" : "bg-yellow-300"} title={`Market settled ${yes ? "YES — it rained" : "NO — stayed dry"}`} value={data.result.toUpperCase()} />
+      <Step run={run} i={1} dot="bg-rose-400" title={yes ? `${data.bookings} refunds issued` : "Refunds issued"} value={yes ? `−${usd(data.refunds, 0)}` : "$0"} />
+      <Step run={run} i={2} dot="bg-emerald-400" title={yes ? `Hedge paid ${(data.bookings * data.contracts).toLocaleString()} × $1` : "Hedge expired"} value={yes ? `+${usd(data.hedge_payout, 0)}` : "$0"} />
+      <motion.div key={`net-${run}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.1, duration: 0.5 }}
+        className="flex items-end justify-between border-t border-white/[0.12] pt-5">
+        <span className="rs-label">Merchant net</span>
+        <span data-testid={`${testid}-net`} className={`font-num text-4xl font-medium tracking-tight ${yes ? "text-sky-400" : "text-yellow-300"}`}>{usd(data.net)}</span>
       </motion.div>
-      <p className="text-xs text-slate-500">Premiums {usd(data.premium)} − hedge cost {usd(data.hedge_cost)}{yes ? ` + payout ${usd(data.hedge_payout, 0)} − refunds ${usd(data.refunds, 0)}` : ""}</p>
-      <Button variant="outline" size="sm" className="rounded-full" onClick={() => setRun((r) => r + 1)} data-testid={`${testid}-replay-btn`}>
-        <Play className="mr-1 h-3.5 w-3.5" /> Replay
-      </Button>
-      <TriggerBox rules={data.rules_primary} ticker={data.ticker} compact />
+      <p className="mt-3 text-[11px] text-zinc-600">Premiums {usd(data.premium)} − hedge {usd(data.hedge_cost)}{yes ? ` + payout ${usd(data.hedge_payout, 0)} − refunds ${usd(data.refunds, 0)}` : ""}</p>
+      <button className="mt-4 inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white" onClick={() => setRun((r) => r + 1)} data-testid={`${testid}-replay-btn`}>
+        <RotateCcw className="h-3.5 w-3.5" /> Replay
+      </button>
+      <div className="mt-5"><TriggerBox rules={data.rules_primary} ticker={data.ticker} compact /></div>
     </div>
   );
 };
@@ -63,16 +60,18 @@ const Column = ({ title, list, value, testid }) => {
     setTicker(list[0]?.ticker || "");
   }, [list]);
   return (
-    <div className="space-y-4 rounded-3xl bg-slate-100/70 p-4 sm:p-6">
-      <h2 className="font-display text-lg font-semibold text-[#091e36]">{title}</h2>
-      {list.length > 0 && (
-        <Select value={ticker} onValueChange={setTicker}>
-          <SelectTrigger data-testid={`${testid}-date-select`} className="h-11 bg-white"><SelectValue /></SelectTrigger>
-          <SelectContent className="max-h-72">
-            {list.map((m) => <SelectItem key={m.ticker} value={m.ticker}>{m.product === "weekend" ? "Weekend · " : "Day · "}{m.ticker.split("-")[1]}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      )}
+    <div className="rs-card p-5 sm:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-base font-medium text-white">{title}</h2>
+        {list.length > 0 && (
+          <Select value={ticker} onValueChange={setTicker}>
+            <SelectTrigger data-testid={`${testid}-date-select`} className="font-num h-8 w-[170px] border-white/10 bg-transparent text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {list.map((m) => <SelectItem key={m.ticker} value={m.ticker}>{m.product === "weekend" ? "Wknd " : "Day "}{m.ticker.split("-")[1]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       <Timeline ticker={ticker} value={value} testid={testid} />
     </div>
   );
@@ -90,18 +89,18 @@ export default function Replay() {
   const yes = markets.filter((m) => m.result === "yes");
   const no = markets.filter((m) => m.result === "no");
   return (
-    <div data-testid="replay-page" className="mx-auto max-w-6xl space-y-8 px-4 py-10 sm:px-6">
+    <div data-testid="replay-page" className="mx-auto max-w-6xl space-y-10 px-4 py-12 sm:px-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-sky-600">Settlement replay · {city}</p>
-        <h1 className="font-display mt-2 text-4xl font-extrabold tracking-tight text-[#091e36] sm:text-5xl">What actually happened.</h1>
-        <p className="mt-3 max-w-xl text-sm text-slate-600 sm:text-base">
-          Real settled Kalshi rain markets for {city}, replayed for {BOOKINGS} bookings at {usd(merchant?.avg_booking)} — {merchant?.name}.
+        <p className="rs-label">Settlement replay · {city}</p>
+        <h1 className="mt-3 text-4xl font-medium tracking-[-0.03em] text-white sm:text-5xl">What actually happened.</h1>
+        <p className="mt-4 max-w-lg text-sm font-light text-zinc-500 sm:text-base">
+          Real settled Kalshi rain markets, replayed for {BOOKINGS} bookings at {usd(merchant?.avg_booking)} — {merchant?.name}.
         </p>
       </div>
-      {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-sky-600" /> : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Column title="It rained (YES)" list={yes} value={merchant?.avg_booking} testid="replay-yes" />
-          <Column title="It stayed dry (NO)" list={no} value={merchant?.avg_booking} testid="replay-no" />
+      {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-zinc-500" /> : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Column title="It rained" list={yes} value={merchant?.avg_booking} testid="replay-yes" />
+          <Column title="It stayed dry" list={no} value={merchant?.avg_booking} testid="replay-no" />
         </div>
       )}
     </div>
