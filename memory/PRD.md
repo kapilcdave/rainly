@@ -13,6 +13,8 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Frontend: Expo Router stack: `/`, `/merchants`, `/onboarding`, `/merchant/[id]`, `/merchant/[id]/checkout`, `/merchant/[id]/replay`. Fonts: Space Grotesk and Plus Jakarta Sans. Icons: Ionicons. The logo is drawn from Views (`src/components/Logo.tsx`), and the app icon, favicon and splash were regenerated in blue.
 
 ## Implemented (Oct 24 2026)
+- Refund alert emails (Emergent managed email, from "Rainly"): optional customer email at checkout (shown when the refund is toggled on). When a market settles YES, guarantees flip to refunded and emails send in the background, with retry up to 3 attempts across 5-minute passes and no duplicates. The dashboard shows a refund-emails-sent count.
+- Landing redesign: solid blue hero with a large logo, shorter copy, "Get started" button, no "demo" wording.
 - All 6 screens, live pricing, depth warning, official trigger text (`rules_primary`), mock and demo hedge orders, P&L, order book, settlement replay with real entry prices from candlesticks, seed data, the blue logo, and input validation.
 - Testing iteration 1: all flows passed. The validation, navigation and UI issues it found are fixed.
 

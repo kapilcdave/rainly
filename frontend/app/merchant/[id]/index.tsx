@@ -17,7 +17,7 @@ type Order = { id: string; ticker: string; count: number; price: number; fee: nu
 type Dash = {
   merchant: Merchant;
   mode: string;
-  stats: { guarantees_sold: number; active: number; refunded: number; expired: number; contracts_held: number; hedge_cost: number; premiums: number; refund_liability: number };
+  stats: { guarantees_sold: number; active: number; refunded: number; expired: number; refund_emails_sent: number; with_email: number; contracts_held: number; hedge_cost: number; premiums: number; refund_liability: number };
   pnl: { if_rains: PnL; if_dry: PnL };
   live: Quote;
   orderbook: { asks: [number, number][]; bids: [number, number][] };
@@ -90,8 +90,8 @@ export default function Dashboard() {
             <Metric label="Refund fees collected" value={money(d.stats.premiums)} testID="metric-premiums" />
           </View>
           {d.stats.refunded + d.stats.expired > 0 ? (
-            <Text style={styles.caption}>
-              Settled: {d.stats.refunded} refunded · {d.stats.expired} expired dry
+            <Text style={styles.caption} testID="settled-summary">
+              Settled: {d.stats.refunded} refunded · {d.stats.expired} expired dry · {d.stats.refund_emails_sent} refund emails sent
             </Text>
           ) : null}
 

@@ -23,7 +23,7 @@ export default function Merchants() {
     <View style={styles.root}>
       <Header
         title="Pick a merchant"
-        subtitle="Demo mode · no login needed"
+        subtitle="Choose your business · no login needed"
         right={
           <View style={styles.logo}>
             <Logo size={24} color={colors.brandPrimary} />

@@ -23,6 +23,8 @@ from cryptography.hazmat.primitives.asymmetric import padding
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+from emailer import EMAIL_RE, refund_email, send_email  # noqa: E402  (needs env loaded)
+
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
@@ -100,6 +102,10 @@ class Guarantee(BaseDocument):
     price: float
     status: str = "active"  # active | refunded | expired
     depth_warning: bool = False
+    customer_email: Optional[str] = None
+    refund_email_status: Optional[str] = None  # sent | no_email | failed:<code>
+    refund_email_at: Optional[str] = None
+    refund_email_attempts: int = 0
     created_at: str = Field(default_factory=now_iso)
 
 
@@ -130,6 +136,7 @@ class MerchantCreate(BaseModel):
 class GuaranteeCreate(BaseModel):
     merchant_id: str
     customer_name: str = Field(default="Guest", max_length=80)
+    customer_email: Optional[str] = Field(default=None, max_length=200)
     booking_value: float = Field(gt=0, le=10000)
     kind: str = "weekend"
     date: Optional[str] = None
@@ -351,15 +358,83 @@ async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str
 
 
 # ---------------------------------------------------------------- Settlement
-async def settle_guarantees(merchant_id: str):
-    tickers = await db.guarantees.distinct("ticker", {"merchant_id": merchant_id, "status": "active"})
+async def settle_guarantees(merchant_id: Optional[str]):
+    q = {"status": "active"}
+    if merchant_id:
+        q["merchant_id"] = merchant_id
+    tickers = await db.guarantees.distinct("ticker", q)
     for t in tickers:
         data = await kget(f"/markets/{t}", ttl=60)
         m = (data or {}).get("market") or {}
         if m.get("result") == "yes":
-            await db.guarantees.update_many({"ticker": t, "status": "active"}, {"$set": {"status": "refunded", "settled_at": now_iso()}})
+            base = {"ticker": t, "status": "active"}
+            await db.guarantees.update_many({**base, "customer_email": {"$in": [None, ""]}},
+                                            {"$set": {"status": "refunded", "settled_at": now_iso(), "refund_email_status": "no_email"}})
+            await db.guarantees.update_many(base, {"$set": {"status": "refunded", "settled_at": now_iso(), "refund_email_status": "pending"}})
         elif m.get("result") == "no":
             await db.guarantees.update_many({"ticker": t, "status": "active"}, {"$set": {"status": "expired", "settled_at": now_iso()}})
+    asyncio.create_task(send_pending_alerts())
+
+
+MAX_EMAIL_ATTEMPTS = 3
+_sending = asyncio.Lock()
+
+
+async def send_pending_alerts():
+    """Send refund emails for refunded guarantees that haven't been emailed yet (retries failures)."""
+    if _sending.locked():
+        return
+    async with _sending:
+        q = {"status": "refunded", "customer_email": {"$nin": [None, ""]},
+             "refund_email_status": {"$nin": ["sent", "no_email", "gave_up"]},
+             "refund_email_attempts": {"$not": {"$gte": MAX_EMAIL_ATTEMPTS}}}
+        while True:
+            # Claim atomically so a refund email is never sent twice.
+            doc = await db.guarantees.find_one_and_update(
+                q, {"$set": {"refund_email_status": "sending"}, "$inc": {"refund_email_attempts": 1}})
+            if not doc:
+                break
+            g = Guarantee.from_mongo(doc)
+            try:
+                data = await kget(f"/markets/{g.ticker}", ttl=3600)
+                await send_refund_alert(g, (data or {}).get("market") or {})
+            except Exception as e:
+                logger.warning("refund alert failed for %s: %s", g.id, e)
+                await db.guarantees.update_one({"_id": ObjectId(g.id)}, {"$set": {"refund_email_status": "failed:error"}})
+            if doc.get("refund_email_attempts", 0) + 1 >= MAX_EMAIL_ATTEMPTS:
+                await db.guarantees.update_one({"_id": ObjectId(g.id), "refund_email_status": {"$ne": "sent"}},
+                                               {"$set": {"refund_email_status": "gave_up"}})
+            fresh = await db.guarantees.find_one({"_id": ObjectId(g.id)}, {"refund_email_status": 1})
+            if (fresh or {}).get("refund_email_status") != "sent":
+                break  # back off: remaining/failed sends retry on the next 5-minute settlement pass
+            await asyncio.sleep(0.6)  # stay under the email rate limit
+
+
+async def send_refund_alert(g: Guarantee, market: dict):
+    mdoc = await db.merchants.find_one({"_id": ObjectId(g.merchant_id)})
+    merchant = Merchant.from_mongo(mdoc) if mdoc else None
+    d = date.fromisoformat(g.date)
+    label = f"the weekend of {d.strftime('%b %-d')}" if g.kind == "weekend" else d.strftime('%A, %b %-d')
+    subject, html = refund_email(
+        customer_name=g.customer_name or "there", merchant_name=merchant.name if merchant else "your booking",
+        city=merchant.city if merchant else (market.get("yes_sub_title") or ""), date_label=label,
+        amount=f"${g.booking_value:,.2f}", rules=market.get("rules_primary") or "", ticker=g.ticker)
+    update = {"refund_email_at": now_iso()}
+    try:
+        update["refund_email_id"] = await send_email(to=g.customer_email, subject=subject, html=html)
+        update["refund_email_status"] = "sent"
+    except (RuntimeError, ValueError) as e:
+        update["refund_email_status"] = f"failed:{e}"
+    await db.guarantees.update_one({"_id": ObjectId(g.id)}, {"$set": update})
+
+
+async def settlement_loop():
+    while True:
+        try:
+            await settle_guarantees(None)
+        except Exception as e:
+            logger.warning("settlement loop error: %s", e)
+        await asyncio.sleep(300)
 
 
 # ---------------------------------------------------------------- Routes
@@ -444,6 +519,9 @@ async def get_merchant(mid: str):
 async def create_guarantee(body: GuaranteeCreate):
     m = await merchant_or_404(body.merchant_id)
     check_kind(body.kind)
+    email = (body.customer_email or "").strip() or None
+    if email and not EMAIL_RE.match(email):
+        raise HTTPException(400, "Enter a valid email address")
     d = parse_day(body.date) or weekend_saturday(today_et())
     q = await build_quote(m.city, body.kind, d, body.booking_value, m.margin_pct)
     if not q["available"]:
@@ -451,7 +529,7 @@ async def create_guarantee(body: GuaranteeCreate):
     g = Guarantee(merchant_id=m.id, customer_name=body.customer_name or "Guest", booking_value=body.booking_value,
                   kind=body.kind, date=d.isoformat(), event_ticker=q["event_ticker"], ticker=q["ticker"], p=q["p"],
                   fee_per_contract=q["fee_per_contract"], contracts=q["contracts"], hedge_cost=q["hedge_cost"],
-                  price=q["price"], depth_warning=not q["depth_ok"])
+                  price=q["price"], depth_warning=not q["depth_ok"], customer_email=email)
     res = await db.guarantees.insert_one(g.to_mongo())
     g.id = str(res.inserted_id)
     order = await place_hedge(m.id, g.id, q["ticker"], q["contracts"], q["p"], q["fee_per_contract"])
@@ -480,6 +558,8 @@ async def dashboard(mid: str):
             "active": len(active),
             "refunded": sum(1 for g in gs if g.status == "refunded"),
             "expired": sum(1 for g in gs if g.status == "expired"),
+            "refund_emails_sent": sum(1 for g in gs if g.refund_email_status == "sent"),
+            "with_email": sum(1 for g in gs if g.customer_email),
             "contracts_held": contracts,
             "hedge_cost": round(hedge, 2),
             "premiums": round(premiums, 2),
@@ -615,6 +695,7 @@ async def on_startup():
         await seed()
     except Exception as e:
         logger.exception("Seed failed: %s", e)
+    asyncio.create_task(settlement_loop())
 
 
 app.include_router(api_router)

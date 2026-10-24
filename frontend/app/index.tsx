@@ -1,6 +1,4 @@
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,12 +12,10 @@ import { Logo } from "@/src/components/Logo";
 import { Btn } from "@/src/components/Btn";
 import { PitchFooter } from "@/src/components/Footer";
 
-const HERO = "https://images.unsplash.com/photo-1571535366901-3244028cba2d?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
-
 const STEPS = [
-  { icon: "storefront-outline", title: "Offer it at checkout", body: "Customers add a small rain refund to their booking. Priced live from Kalshi rain odds." },
-  { icon: "swap-horizontal-outline", title: "We hedge instantly", body: "Rainly buys matching Kalshi YES contracts — each pays $1 if it rains." },
-  { icon: "umbrella-outline", title: "Rain? Auto refund", body: "When the official station records rain, the market settles YES and refunds go out." },
+  { icon: "storefront-outline", title: "Offer it at checkout", body: "Customers add a small rain refund." },
+  { icon: "swap-horizontal-outline", title: "We hedge instantly", body: "Matching Kalshi contracts pay $1 if it rains." },
+  { icon: "umbrella-outline", title: "Rain? Auto refund", body: "Customers are refunded and emailed automatically." },
 ];
 
 type Ticker = { weekend_of: string; listed: boolean; cities: { city: string; p: number | null }[] };
@@ -34,24 +30,17 @@ export default function Landing() {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero} testID="landing-hero">
-          <Image source={{ uri: HERO }} style={StyleSheetAbs} contentFit="cover" transition={300} />
-          <LinearGradient colors={["rgba(11,30,63,0.55)", "rgba(11,30,63,0.92)"]} style={StyleSheetAbs} />
-          <View style={[styles.heroInner, { paddingTop: insets.top + 16 }]}>
-            <View style={styles.brandRow}>
-              <View style={styles.logoTile}>
-                <Logo size={26} color={colors.brandPrimary} />
-              </View>
-              <Text style={styles.brand}>Rainly</Text>
-            </View>
-            <Animated.Text entering={FadeInDown.duration(500)} style={styles.h1}>
-              Rain shouldn&apos;t cost you customers
-            </Animated.Text>
-            <Animated.Text entering={FadeInDown.delay(120).duration(500)} style={styles.lead}>
-              Offer a rain refund at checkout. Priced live from Kalshi rain markets, hedged automatically, paid out on
-              official station data.
-            </Animated.Text>
-          </View>
+        <View style={[styles.hero, { paddingTop: insets.top + 24 }]} testID="landing-hero">
+          <Animated.View entering={FadeInDown.duration(500)} style={styles.logoTile}>
+            <Logo size={64} color={colors.brandPrimary} />
+          </Animated.View>
+          <Text style={styles.brand}>Rainly</Text>
+          <Animated.Text entering={FadeInDown.delay(100).duration(500)} style={styles.h1}>
+            Rain shouldn&apos;t cost you customers
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.delay(180).duration(500)} style={styles.lead}>
+            Rain refunds at checkout, priced live from Kalshi.
+          </Animated.Text>
         </View>
 
         <View style={styles.section}>
@@ -108,35 +97,22 @@ export default function Landing() {
           </View>
         </View>
 
-        <View style={[styles.section, styles.basis]} testID="no-basis-risk-card">
-          <Ionicons name="git-compare-outline" size={22} color={colors.onSurfaceTertiary} />
-          <Text style={styles.basisText}>
-            <Text style={{ fontFamily: fonts.bodyBold }}>Zero basis risk. </Text>
-            Refunds trigger on the same official station reading the Kalshi contract settles on — the hedge pays exactly
-            when refunds are owed.
-          </Text>
-        </View>
-
         <PitchFooter />
       </ScrollView>
       <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
-        <Btn testID="landing-open-demo-button" label="Open merchant demo" icon="arrow-forward" onPress={() => router.push("/merchants")} />
+        <Btn testID="landing-get-started-button" label="Get started" icon="arrow-forward" onPress={() => router.push("/merchants")} />
       </View>
     </View>
   );
 }
 
-const StyleSheetAbs = { position: "absolute" as const, top: 0, left: 0, right: 0, bottom: 0 };
-
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
-  hero: { minHeight: 380, overflow: "hidden", backgroundColor: c.hero, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
-  heroInner: { paddingHorizontal: 20, paddingBottom: 32, flex: 1, justifyContent: "space-between", minHeight: 380 },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  logoTile: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
-  brand: { fontFamily: fonts.display, fontSize: 24, color: c.onHero, letterSpacing: -0.5 },
-  h1: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: c.onHero, letterSpacing: -1, marginTop: 48 },
-  lead: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: c.heroMuted, marginTop: 12 },
+  hero: { backgroundColor: c.brandPrimary, paddingHorizontal: 20, paddingBottom: 32, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  logoTile: { width: 88, height: 88, borderRadius: 24, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  brand: { fontFamily: fonts.display, fontSize: 28, color: c.onBrandPrimary, letterSpacing: -0.5, marginTop: 16 },
+  h1: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: c.onBrandPrimary, letterSpacing: -1, marginTop: 24 },
+  lead: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24, color: c.heroMuted, marginTop: 12 },
   section: { paddingHorizontal: 20, marginTop: 28 },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   h2: { fontFamily: fonts.bodyBold, fontSize: 20, color: c.onSurface },
@@ -155,7 +131,5 @@ const useStyles = makeStyles((c) => ({
   stepTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   stepTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: c.onSurface },
   stepBody: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.onSurfaceSecondary, marginTop: 4 },
-  basis: { flexDirection: "row", gap: 12, padding: 16, marginHorizontal: 20, paddingHorizontal: 16, borderRadius: 16, backgroundColor: c.brandSecondary },
-  basisText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.onSurfaceTertiary },
   cta: { paddingHorizontal: 20, paddingTop: 12, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border },
 }));

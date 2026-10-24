@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 2: customer_email + settlement refund emails (Emergent/Resend) and landing redesign all working. Backend 34/34 pytest pass (11 new email/settlement tests + 23 regression). Verified: invalid email variants -> 400 'Enter a valid email address'; valid/whitespace-trimmed email persisted; blank email -> null; settled YES ticker (KXRAIN-26OCT16-CHI) -> refunded + refund_email_status 'sent' + refund_email_id, stats.refund_emails_sent/refunded increment; 2nd dashboard load does NOT resend (refund_email_at/id unchanged); YES w/o email -> 'no_email'; settled NO (KXRAIN-26OCT23-CHI) -> expired, no email; weekend-kind label path sends; dashboard settles only its own merchant. Email proxy returned 202 Accepted in backend logs. Frontend @375px: solid blue hero (rgb 37,99,235, no images), logo tile, 'Get started' (52px tall) -> /merchants; no 'demo' text on landing or merchant picker. Checkout: invalid email shows checkout-error, valid email shows \"we'll email delivered@resend.dev\", New booking clears email. Dashboard settled-summary shows '1 refunded · 1 expired dry · 1 refund emails sent'. Regression replay + onboarding OK. No deprecated Expo packages detected.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "settle_guarantees/send_refund_alert", "issue": "Guarantee is flipped to 'refunded' BEFORE the email is attempted. Failures (refund_email_status 'failed:*') are never retried, and any exception outside the send_email try (e.g. date.fromisoformat on a bad date, merchant lookup) leaves the doc 'refunded' with no refund_email_status forever -> customer never notified. Consider a retry pass for status in (None, failed:*) where status=='refunded' and customer_email set, claimed atomically via a 'sending' marker."},
+      {"endpoint": "GET /api/merchants/{id}/dashboard", "issue": "Settlement (one Kalshi call per distinct active ticker + serial email sends, 30s timeout each) runs inline in the request; dashboard latency scales with number of settled tickers/emails. Consider firing settlement as a background task and returning immediately."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout email field", "issue": "'Email for refund alerts' input is shown and accepted even when rain refund toggle is OFF; on confirm the email is silently discarded (no guarantee created). Hide/disable the field when toggle is off or show a hint.", "testID": "checkout-email-input", "priority": "low"}
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_refund_emails.py", "/app/backend/tests/test_rainly_api.py", "/app/backend/tests/conftest.py", "/app/test_reports/pytest/pytest_results_iter2.xml"],
+  "action_items": [
+    "Add retry/recovery for refund emails that failed or were never attempted after the guarantee was flipped to refunded",
+    "Move settlement off the dashboard request path (background task) to keep dashboard fast",
+    "Hide or disable checkout-email-input when rain refund toggle is off"
+  ],
+  "critical_code_review_comments": [
+    "Atomic find_one_and_update claim correctly prevents duplicate emails (verified by repeat dashboard calls and a parallel xdist run).",
+    "Email template escapes all interpolations and passes safety scan; recipient restricted to delivered@resend.dev in tests.",
+    "Previous test_rainly_api.py::test_create_merchant_and_get left TEST_ merchants visible in the merchant picker; added session cleanup in conftest.py."
+  ],
+  "updated_files": ["/app/backend/tests/test_refund_emails.py (new)", "/app/backend/tests/conftest.py (new: env loading + TEST_ cleanup)"],
+  "success_rate": {"backend": "100% (34/34)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "Temporary TEST_ guarantees inserted in Mongo for settlement tests; all TEST_ guarantees/orders/merchants removed (including E1's TEST_Email guarantee and 2 leftover TEST_Rainly Merchant docs). Seeded merchants untouched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/ -n 0 (conftest loads env and cleans TEST_ data; use -n 0 because stats-delta assertions are not xdist-safe). Server clock is 2026-10-24. Settled YES ticker KXRAIN-26OCT16-CHI, settled NO KXRAIN-26OCT23-CHI. Maria's id 6add11451f0373a8576b5b40. Only email delivered@resend.dev."
+}

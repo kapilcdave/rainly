@@ -29,6 +29,7 @@ export default function Checkout() {
   const [opt, setOpt] = useState(0);
   const [value, setValue] = useState("");
   const [customer, setCustomer] = useState("");
+  const [email, setEmail] = useState("");
   const [on, setOn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -67,11 +68,16 @@ export default function Checkout() {
       setResult({ guarantee: null, order: null as any });
       return;
     }
+    const em = email.trim();
+    if (em && !/^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/.test(em)) {
+      setError("Enter a valid email address");
+      return;
+    }
     setSubmitting(true);
     try {
       const r = await api<Result>("/guarantees", {
         method: "POST",
-        body: JSON.stringify({ merchant_id: id, customer_name: customer.trim() || "Guest", booking_value: bv, kind: dateOpt!.kind, date: dateOpt!.date }),
+        body: JSON.stringify({ merchant_id: id, customer_name: customer.trim() || "Guest", customer_email: em || null, booking_value: bv, kind: dateOpt!.kind, date: dateOpt!.date }),
       });
       setResult(r);
       qc.invalidateQueries({ queryKey: ["dash", id] });
@@ -87,6 +93,7 @@ export default function Checkout() {
     setResult(null);
     setOn(false);
     setCustomer("");
+    setEmail("");
   }
 
   const m = merchant.data;
@@ -108,7 +115,8 @@ export default function Checkout() {
                 {result.guarantee ? (
                   <>
                     <Text style={styles.doneBody}>
-                      If it rains on {dateOpt?.label}, you get {money(result.guarantee.booking_value)} back automatically.
+                      If it rains on {dateOpt?.label}, you get {money(result.guarantee.booking_value)} back automatically
+                      {result.guarantee.customer_email ? ` and we'll email ${result.guarantee.customer_email}.` : "."}
                     </Text>
                     <View style={styles.hedgeBox} testID="checkout-hedge-confirmation">
                       <Text style={styles.hedgeLabel}>Behind the scenes</Text>
@@ -216,6 +224,23 @@ export default function Checkout() {
                       <Text style={{ fontFamily: fonts.bodyBold }}>Official trigger: </Text>
                       {qd.rules_primary}
                     </Text>
+                  ) : null}
+                  {on ? (
+                    <Animated.View entering={FadeInDown}>
+                      <Text style={styles.label}>Email for refund alerts</Text>
+                      <TextInput
+                        testID="checkout-email-input"
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="you@example.com"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={[styles.input, { backgroundColor: colors.surface }]}
+                      />
+                      <Text style={styles.small}>We&apos;ll email you automatically if it rains.</Text>
+                    </Animated.View>
                   ) : null}
                 </View>
 
