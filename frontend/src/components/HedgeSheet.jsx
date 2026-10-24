@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ShieldCheck, FlaskConical, Zap, Info, ExternalLink } from "lucide-react";
+import { ShieldCheck, FlaskConical, Zap, Info, ExternalLink, BellRing } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -53,12 +53,14 @@ export default function HedgeSheet({ open, onOpenChange, ticker, defaults = {}, 
   const [coverage, setCoverage] = useState(50);
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [watching, setWatching] = useState(false);
   const coid = useRef(null);
   const kalshi = useKalshiStatus(open);
 
   useEffect(() => {
     if (!open || !ticker) return;
     setMarket(null);
+    setWatching(false);
     setSide(defaults.side || "yes");
     setLoss(Math.round(defaults.loss_if_event || 500));
     setCoverage(Math.round((defaults.coverage || 0.5) * 100));
@@ -95,6 +97,13 @@ export default function HedgeSheet({ open, onOpenChange, ticker, defaults = {}, 
   };
 
   const openConfirm = () => { coid.current = crypto.randomUUID(); setConfirm(true); };
+  const watch = async () => {
+    try {
+      await api.post("/watches", { ticker, side, headline: defaults.headline || market.outcome, business_id: defaults.business_id || null, target_price: price > 0.02 ? Math.round(price * 80) / 100 : null });
+      setWatching(true);
+      toast.success("Watching this hedge", { description: "We'll alert you if the price drops 20% or the odds shift." });
+    } catch (e) { toast.error(errMsg(e)); }
+  };
   const priceGone = market && (!price || price >= 1);
 
   return (
@@ -176,6 +185,9 @@ export default function HedgeSheet({ open, onOpenChange, ticker, defaults = {}, 
                 ) : (
                   <p className="text-sm text-slate-600 text-center">Want to place it for real? <Link to="/settings" className="text-sky-700 underline" data-testid="connect-kalshi-link">Connect your Kalshi account</Link></p>
                 )}
+                <Button variant="ghost" className="w-full rounded-xl text-[#0F4C81]" disabled={watching} onClick={watch} data-testid="watch-hedge-button">
+                  <BellRing size={16} className="mr-2" /> {watching ? "Watching. We'll alert you" : "Alert me if it gets cheaper"}
+                </Button>
               </div>
             )}
             <p className="text-xs text-slate-500">RainCheck suggests hedges but does not give financial advice. Prices are live from Kalshi and may change.</p>

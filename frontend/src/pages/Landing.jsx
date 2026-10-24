@@ -65,6 +65,49 @@ const STEPS = [
   [ShieldCheck, "Buy protection", "Pick your coverage, paper trade first, then place it for real on your own Kalshi account."],
 ];
 
+const STATS = [
+  ["25%", "of a day's sales lost on a moderately bad-weather day, and 40% on a very bad one. Those sales aren't made up later or online.", "Federal Reserve Bank of San Francisco, Economic Letter 2022-22", "https://www.frbsf.org/research-and-insights/publications/economic-letter/2022/08/impact-of-weather-on-retail-sales/"],
+  ["$485B", "of yearly US economic output (3.4% of GDP) swings with ordinary weather variability.", "Lazo et al., Bulletin of the American Meteorological Society, 2011", "https://journals.ametsoc.org/view/journals/bams/92/6/2011bams2928.1.xml"],
+  ["16", "US cities with live, regulated Kalshi weather contracts for rain, heat, cold and snow, priced from 1¢ each. The hedge already exists. Small businesses just can't use it yet.", "Kalshi public market data, live in this app", "https://kalshi.com/category/climate"],
+];
+
+const Research = () => (
+  <section className="max-w-7xl mx-auto px-6 pb-24" data-testid="research-section">
+    <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 max-w-2xl">Bad weather is a real, uninsured cost</h2>
+    <p className="text-slate-600 mt-3 max-w-2xl">Regular business insurance covers storm damage, not the customers who stayed home. RainCheck covers that gap with contracts already listed on a CFTC-regulated exchange.</p>
+    <div className="grid md:grid-cols-3 gap-6 mt-10">
+      {STATS.map(([n, d, src, url]) => (
+        <div key={n} className="rounded-2xl border border-slate-200 bg-white p-8">
+          <div className="font-num text-4xl font-semibold text-[#0F4C81]">{n}</div>
+          <p className="text-slate-700 mt-4 leading-relaxed">{d}</p>
+          <a href={url} target="_blank" rel="noreferrer" className="block text-xs text-slate-500 underline mt-4">{src}</a>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+const PLANS = [
+  ["Free", "$0", ["AI risk report", "Live weather markets", "Unlimited paper hedges"]],
+  ["Pro", "$19/mo", ["Everything in Free", "Phone alerts on price and forecast moves", "Season plans on autopilot", "Real orders on your own Kalshi account"]],
+];
+
+const Pricing = () => (
+  <section className="max-w-7xl mx-auto px-6 pb-24" data-testid="pricing-section">
+    <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900">Simple pricing</h2>
+    <p className="text-slate-600 mt-3 max-w-2xl">For ice cream shops, food trucks, patios, car washes, landscapers and outdoor venues. One saved rainy Saturday pays for years of Pro.</p>
+    <div className="grid md:grid-cols-2 gap-6 mt-10 max-w-3xl">
+      {PLANS.map(([name, price, feats], i) => (
+        <div key={name} className={`rounded-2xl border p-8 ${i ? "border-[#0F4C81] bg-sky-50/50" : "border-slate-200 bg-white"}`}>
+          <div className="font-medium text-slate-600">{name}</div>
+          <div className="font-num text-3xl font-semibold mt-1">{price}</div>
+          <ul className="mt-5 space-y-2 text-sm text-slate-700">{feats.map((f) => <li key={f} className="flex gap-2"><ShieldCheck size={16} className="text-teal-600 shrink-0 mt-0.5" />{f}</li>)}</ul>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
 export default function Landing() {
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
@@ -125,6 +168,9 @@ export default function Landing() {
         <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-10">The ice cream shop example</h2>
         <Compare />
       </section>
+
+      <Research />
+      <Pricing />
 
       <section className="max-w-7xl mx-auto px-6 pb-24">
         <div className="rounded-3xl bg-[#0F4C81] text-white p-10 sm:p-14 flex flex-col md:flex-row md:items-center gap-8" data-testid="download-section">

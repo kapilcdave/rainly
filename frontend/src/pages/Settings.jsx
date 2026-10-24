@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api, errMsg, usd } from "@/lib/api";
+import { PushToggle } from "@/components/PushToggle";
 
 const EnvPicker = ({ value, onChange }) => (
   <RadioGroup value={value} onValueChange={onChange} className="grid sm:grid-cols-2 gap-3" data-testid="kalshi-env-radio">
@@ -59,8 +60,8 @@ export default function Settings() {
         <h1 className="text-3xl sm:text-4xl font-semibold">Settings</h1>
         <p className="text-slate-600 mt-2">Connect your own Kalshi account to place real hedges. Paper trading works without this.</p>
       </div>
-      {status?.connected ? <Connected status={status} onDisconnect={disconnect} /> : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 space-y-6" data-testid="kalshi-connect-form">
+      <PushToggle />
+      {status?.connected ? <Connected status={status} onDisconnect={disconnect} /> : (        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 space-y-6" data-testid="kalshi-connect-form">
           <div className="flex items-center gap-3 font-medium"><KeyRound size={20} className="text-[#0F4C81]" /> Connect Kalshi</div>
           <ol className="text-sm text-slate-600 list-decimal pl-5 space-y-1">
             <li>On Kalshi (or demo.kalshi.co for Demo), open Account & security → API Keys.</li>

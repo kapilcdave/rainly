@@ -11,6 +11,8 @@ import Onboarding from "@/pages/Onboarding";
 import BusinessReport from "@/pages/BusinessReport";
 import Markets from "@/pages/Markets";
 import Settings from "@/pages/Settings";
+import Alerts from "@/pages/Alerts";
+import Plans from "@/pages/Plans";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -54,6 +56,8 @@ const AppRouter = () => {
       <Route path="/business/:id" element={<Protected><BusinessReport /></Protected>} />
       <Route path="/markets" element={<Protected><Markets /></Protected>} />
       <Route path="/settings" element={<Protected><Settings /></Protected>} />
+      <Route path="/alerts" element={<Protected><Alerts /></Protected>} />
+      <Route path="/plans" element={<Protected><Plans /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

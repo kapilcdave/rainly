@@ -1,40 +1,28 @@
 import os
+import hmac
 import logging
-import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Literal, Optional
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, BackgroundTasks
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
-from cryptography.fernet import Fernet
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 import kalshi  # noqa: E402
 import advisor  # noqa: E402
+import services  # noqa: E402
+from services import db, client, fernet, now, nid, refresh_positions  # noqa: E402
 
-client = AsyncIOMotorClient(os.environ["MONGO_URL"])
-db = client[os.environ["DB_NAME"]]
-fernet = Fernet(os.environ["APP_ENCRYPTION_KEY"].encode())
 logger = logging.getLogger("raincheck")
 
 app = FastAPI()
 api = APIRouter(prefix="/api")
-
-
-def now():
-    return datetime.now(timezone.utc)
-
-
-def nid():
-    return uuid.uuid4().hex[:12]
-
 
 # ---------- Auth ----------
 async def current_user(request: Request) -> dict:
@@ -254,11 +242,7 @@ class CredsIn(BaseModel):
 
 
 async def user_client(user: dict) -> tuple[kalshi.KalshiClient, str]:
-    row = await db.kalshi_credentials.find_one({"user_id": user["user_id"]}, {"_id": 0})
-    if not row:
-        raise HTTPException(400, "Connect your Kalshi keys in Settings first")
-    pem = fernet.decrypt(row["private_key_enc"].encode()).decode()
-    return kalshi.KalshiClient(row["environment"], row["key_id"], pem), row["environment"]
+    return await services.user_client(user["user_id"])
 
 
 @api.get("/kalshi/status")
@@ -317,73 +301,40 @@ class PositionIn(BaseModel):
     client_order_id: Optional[str] = None
 
 
-def _fill_count(resp: dict):
-    o = resp.get("order", resp) if isinstance(resp, dict) else {}
-    for k in ("fill_count_fp", "fill_count", "filled_count"):
-        if o.get(k) is not None:
-            try:
-                return int(float(o[k]))
-            except (TypeError, ValueError):
-                pass
-    return None
-
-
 @api.post("/positions")
 async def open_position(body: PositionIn, user: dict = Depends(current_user)):
     if body.business_id:
         await get_biz(body.business_id, user)
-    try:
-        m = await kalshi.market_detail(body.ticker, fresh=True)
-    except httpx.HTTPStatusError:
-        raise HTTPException(404, "Market not found")
-    if m["status"] not in ("active", "open"):
-        raise HTTPException(400, "This market is no longer open")
-    price = m["yes_ask"] if body.side == "yes" else m["no_ask"]
-    if not price or price >= 1:
-        raise HTTPException(400, "No one is selling this side right now")
-    contracts, env, order = body.contracts, None, None
-    if body.mode == "kalshi":
-        c, env = await user_client(user)
-        coid = body.client_order_id or str(uuid.uuid4())
-        if await db.positions.find_one({"client_order_id": coid}):
-            raise HTTPException(409, "This order was already submitted")
-        try:
-            order = await c.buy(body.ticker, body.side, contracts, price, coid)
-        except Exception as e:
-            raise HTTPException(502, str(e)[:300])
-        filled = _fill_count(order)
-        if filled == 0:
-            raise HTTPException(409, "Kalshi couldn't fill this at the shown price, so nothing was bought. Try again.")
-        contracts = filled or contracts
-    doc = {
-        "id": nid(), "user_id": user["user_id"], "business_id": body.business_id, "ticker": body.ticker,
-        "title": m["title"], "outcome": m["outcome"], "city": m["city"], "kind": m["kind"],
-        "headline": body.headline, "side": body.side, "contracts": contracts, "price": price,
-        "cost": round(contracts * price, 2), "max_payout": float(contracts), "loss_if_event": body.loss_if_event,
-        "mode": body.mode, "environment": env, "client_order_id": body.client_order_id if body.mode == "kalshi" else None,
-        "kalshi_order": order, "status": "open", "result": None, "payout": None, "pnl": None,
-        "close_time": m["close_time"], "created_at": now().isoformat(),
-    }
-    await db.positions.insert_one(doc)
-    doc.pop("_id", None)
-    return doc
+    return await services.place_position(user["user_id"], body.ticker, body.side, body.contracts, body.mode,
+                                         body.business_id, body.loss_if_event, body.headline, body.client_order_id)
 
 
-async def refresh_positions(user_id: str):
-    open_pos = await db.positions.find({"user_id": user_id, "status": "open"}, {"_id": 0}).to_list(500)
-    for p in open_pos:
-        try:
-            m = await kalshi.market_detail(p["ticker"])
-        except Exception:
-            continue
-        if m["result"] in ("yes", "no") and m["status"] in ("finalized", "settled", "determined"):
-            won = m["result"] == p["side"]
-            payout = p["max_payout"] if won else 0.0
-            await db.positions.update_one(
-                {"id": p["id"]},
-                {"$set": {"status": "settled", "result": m["result"], "won": won, "payout": payout,
-                          "pnl": round(payout - p["cost"], 2), "settled_at": now().isoformat()}},
-            )
+class SimulateIn(BaseModel):
+    result: Literal["yes", "no"]
+
+
+@api.post("/positions/{pid}/simulate")
+async def simulate_position(pid: str, body: SimulateIn, user: dict = Depends(current_user)):
+    p = await db.positions.find_one({"id": pid, "user_id": user["user_id"]}, {"_id": 0})
+    if not p:
+        raise HTTPException(404, "Not found")
+    if p["mode"] != "paper" or p["status"] != "open":
+        raise HTTPException(400, "Only open paper hedges can be simulated")
+    await services.settle(p, body.result, simulated=True)
+    return await db.positions.find_one({"id": pid}, {"_id": 0, "kalshi_order": 0})
+
+
+@api.post("/positions/{pid}/celebrated")
+async def mark_celebrated(pid: str, user: dict = Depends(current_user)):
+    await db.positions.update_one({"id": pid, "user_id": user["user_id"]}, {"$set": {"celebrated": True}})
+    return {"ok": True}
+
+
+@api.post("/kalshi/sync")
+async def kalshi_sync(user: dict = Depends(current_user)):
+    res = await services.sync_orders(user["user_id"])
+    await refresh_positions(user["user_id"])
+    return res
 
 
 @api.get("/positions")
@@ -407,7 +358,8 @@ async def delete_position(pid: str, user: dict = Depends(current_user)):
 @api.get("/dashboard")
 async def dashboard(user: dict = Depends(current_user)):
     await refresh_positions(user["user_id"])
-    pos = await db.positions.find({"user_id": user["user_id"]}, {"_id": 0, "kalshi_order": 0}).to_list(500)
+    pos = [p for p in await db.positions.find({"user_id": user["user_id"]}, {"_id": 0, "kalshi_order": 0}).to_list(500)
+           if p["status"] != "cancelled"]
     active = [p for p in pos if p["status"] == "open"]
     settled = [p for p in pos if p["status"] == "settled"]
     return {
@@ -418,7 +370,181 @@ async def dashboard(user: dict = Depends(current_user)):
         "protected": round(sum(p["max_payout"] for p in active), 2),
         "net": round(sum(p["pnl"] or 0 for p in settled), 2),
         "businesses": await db.businesses.count_documents({"user_id": user["user_id"]}),
+        "unread_alerts": await db.alerts.count_documents({"user_id": user["user_id"], "read": False}),
     }
+
+
+# ---------- Watches & alerts ----------
+class WatchIn(BaseModel):
+    ticker: str
+    side: Literal["yes", "no"] = "yes"
+    target_price: Optional[float] = Field(default=None, gt=0, lt=1)
+    headline: str = ""
+    business_id: Optional[str] = None
+
+
+@api.post("/watches")
+async def create_watch(body: WatchIn, user: dict = Depends(current_user)):
+    try:
+        m = await kalshi.market_detail(body.ticker, fresh=True)
+    except httpx.HTTPStatusError:
+        raise HTTPException(404, "Market not found")
+    price = m["yes_ask"] if body.side == "yes" else m["no_ask"]
+    doc = {"id": nid(), "user_id": user["user_id"], "ticker": body.ticker, "side": body.side,
+           "headline": body.headline or m["outcome"], "title": m["title"], "city": m["city"], "kind": m["kind"],
+           "business_id": body.business_id, "target_price": body.target_price, "baseline_price": price,
+           "baseline_prob": services.odds(m), "last_price": price, "last_prob": services.odds(m),
+           "close_time": m["close_time"], "active": True, "created_at": now().isoformat()}
+    await db.watches.update_one({"user_id": user["user_id"], "ticker": body.ticker, "side": body.side},
+                                {"$set": doc}, upsert=True)
+    return doc
+
+
+@api.get("/watches")
+async def list_watches(user: dict = Depends(current_user)):
+    return await db.watches.find({"user_id": user["user_id"], "active": True}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+
+@api.delete("/watches/{wid}")
+async def delete_watch(wid: str, user: dict = Depends(current_user)):
+    await db.watches.delete_one({"id": wid, "user_id": user["user_id"]})
+    return {"ok": True}
+
+
+@api.get("/alerts")
+async def list_alerts(user: dict = Depends(current_user)):
+    return await db.alerts.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+
+@api.post("/alerts/read")
+async def read_alerts(user: dict = Depends(current_user)):
+    await db.alerts.update_many({"user_id": user["user_id"], "read": False}, {"$set": {"read": True}})
+    return {"ok": True}
+
+
+@api.post("/alerts/check")
+async def check_now(user: dict = Depends(current_user)):
+    fired = await services.check_watches(user["user_id"])
+    await services.run_plans(user["user_id"])
+    return {"fired": fired}
+
+
+class PushSub(BaseModel):
+    endpoint: str
+    expirationTime: Optional[int] = None
+    keys: dict
+
+
+@api.get("/push/public-key")
+async def push_key():
+    return {"publicKey": os.environ["VAPID_PUBLIC_KEY"]}
+
+
+@api.post("/push/subscribe")
+async def push_subscribe(sub: PushSub, user: dict = Depends(current_user)):
+    await db.push_subscriptions.update_one(
+        {"user_id": user["user_id"], "endpoint": sub.endpoint},
+        {"$set": {"user_id": user["user_id"], "endpoint": sub.endpoint, "subscription": sub.model_dump(),
+                  "created_at": now().isoformat()}}, upsert=True)
+    return {"ok": True}
+
+
+@api.post("/push/unsubscribe")
+async def push_unsubscribe(sub: PushSub, user: dict = Depends(current_user)):
+    await db.push_subscriptions.delete_one({"user_id": user["user_id"], "endpoint": sub.endpoint})
+    return {"ok": True}
+
+
+@api.post("/push/test")
+async def push_test(user: dict = Depends(current_user)):
+    n = await db.push_subscriptions.count_documents({"user_id": user["user_id"]})
+    if not n:
+        raise HTTPException(400, "Turn on notifications on this device first")
+    await services.send_push(user["user_id"], "RainCheck alerts are on", "We'll ping you when a hedge gets cheaper or the forecast shifts.", "/alerts")
+    return {"devices": n}
+
+
+# ---------- Season plans ----------
+class PlanIn(BaseModel):
+    business_id: str
+    weekends: int = Field(ge=1, le=26)
+    risks: list[Literal["rain", "cool", "hot"]] = Field(min_length=1)
+    coverage: float = Field(ge=0.1, le=1.0)
+    budget: float = Field(gt=0, le=100000)
+    mode: Literal["paper", "kalshi"] = "paper"
+
+
+@api.post("/plans/preview")
+async def plan_preview(body: PlanIn, user: dict = Depends(current_user)):
+    biz = await get_biz(body.business_id, user)
+    legs = services.build_legs(biz, body.weekends, body.risks)
+    if not legs:
+        raise HTTPException(400, f"No matching Kalshi markets for {biz['market_city']} with these risks")
+    est = 0.0
+    per_leg = body.budget / len(legs)
+    for leg in legs:
+        m = await services.pick_market(leg)
+        contracts = max(1, round(leg["loss_if_event"] * body.coverage))
+        if m and contracts * m["yes_ask"] > per_leg:
+            contracts = max(1, int(per_leg / m["yes_ask"]))
+        leg["contracts"] = contracts
+        if m:
+            leg.update({"available": True, "price": m["yes_ask"], "outcome": m["outcome"],
+                        "est_cost": round(contracts * m["yes_ask"], 2)})
+            est += leg["est_cost"]
+        else:
+            leg["available"] = False
+    return {"legs": legs, "now_cost": round(min(est, body.budget), 2),
+            "max_payout": sum(l["contracts"] for l in legs), "later": sum(1 for l in legs if not l["available"])}
+
+
+@api.post("/plans")
+async def create_plan(body: PlanIn, user: dict = Depends(current_user)):
+    biz = await get_biz(body.business_id, user)
+    if body.mode == "kalshi":
+        await user_client(user)
+    legs = services.build_legs(biz, body.weekends, body.risks)
+    if not legs:
+        raise HTTPException(400, f"No matching Kalshi markets for {biz['market_city']} with these risks")
+    plan = {"id": nid(), "user_id": user["user_id"], "business_id": biz["id"], "business_name": biz["name"],
+            "name": f"Cover the next {body.weekends} weekends", **body.model_dump(), "legs": legs, "spent": 0.0,
+            "status": "active", "created_at": now().isoformat()}
+    await db.plans.insert_one(plan)
+    plan.pop("_id", None)
+    return await services.run_plan(plan)
+
+
+@api.get("/plans")
+async def list_plans(user: dict = Depends(current_user)):
+    return await db.plans.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+
+@api.post("/plans/{pid}/cancel")
+async def cancel_plan(pid: str, user: dict = Depends(current_user)):
+    r = await db.plans.update_one({"id": pid, "user_id": user["user_id"], "status": "active"},
+                                  {"$set": {"status": "cancelled"}})
+    if not r.matched_count:
+        raise HTTPException(404, "Active plan not found")
+    return {"ok": True}
+
+
+# ---------- Cron ----------
+@api.post("/cron/tick")
+async def cron_tick(request: Request, background: BackgroundTasks):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer ") or not hmac.compare_digest(auth[7:], os.environ["WEBHOOK_CRON_SECRET"]):
+        raise HTTPException(401, "Unauthorized")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    run_id = request.headers.get("X-Webhook-Id") or (body or {}).get("run_id") or nid()
+    if await db.cron_runs.find_one({"run_id": run_id}):
+        return {"ok": True, "duplicate": True}
+    await db.cron_runs.insert_one({"run_id": run_id, "at": now().isoformat()})
+    background.add_task(services.tick)
+    return {"ok": True}
 
 
 app.include_router(api)

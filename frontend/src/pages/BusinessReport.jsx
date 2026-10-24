@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, ShieldCheck, Trash2, CalendarRange } from "lucide-react";
+import PlanBuilder from "@/components/PlanBuilder";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, errMsg, usd, cents, closeLabel } from "@/lib/api";
@@ -36,6 +37,24 @@ const HedgeCard = ({ h, i, onOpen }) => {
         <ShieldCheck size={16} className="mr-2" /> Review this hedge
       </Button>
     </div>
+  );
+};
+
+const PlanCTA = ({ biz }) => {
+  const [open, setOpen] = useState(false);
+  const [kalshi, setKalshi] = useState(false);
+  const navigate = useNavigate();
+  useEffect(() => { api.get("/kalshi/status").then(({ data }) => setKalshi(data.connected)).catch(() => {}); }, []);
+  return (
+    <section className="rounded-2xl bg-[#0F4C81] text-white p-6 sm:p-8 flex flex-wrap items-center gap-6" data-testid="plan-cta">
+      <CalendarRange size={32} className="text-sky-200" />
+      <div className="flex-1 min-w-[220px]">
+        <h2 className="text-xl font-semibold">Cover every weekend in one tap</h2>
+        <p className="text-sky-100 text-sm mt-1">Approve a season plan once. We place each weekend's hedge as its market opens, within your budget.</p>
+      </div>
+      <Button className="rounded-full bg-white text-[#0F4C81] hover:bg-sky-50" onClick={() => setOpen(true)} data-testid="open-plan-builder-button">Build season plan</Button>
+      <PlanBuilder open={open} onOpenChange={setOpen} businesses={[biz]} defaultBusinessId={biz.id} kalshiConnected={kalshi} onCreated={() => navigate("/plans")} />
+    </section>
   );
 };
 
@@ -112,6 +131,8 @@ export default function BusinessReport() {
           </section>
         </>
       )}
+
+      <PlanCTA biz={biz} />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
         <h2 className="text-xl font-semibold">Hedges for this business</h2>
