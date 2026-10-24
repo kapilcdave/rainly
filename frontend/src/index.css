@@ -1,0 +1,78 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: "Figtree", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #F8FAFC;
+    color: #0F172A;
+}
+
+h1, h2, h3, h4, .font-display { font-family: "Outfit", sans-serif; letter-spacing: -0.02em; }
+.font-num { font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum"; }
+
+::selection { background: #0284C733; }
+
+@layer base {
+    :root {
+        --background: 210 40% 98%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 208 79% 28%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 19% 35%;
+        --accent: 199 89% 95%;
+        --accent-foreground: 208 79% 28%;
+        --destructive: 347 77% 50%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 199 97% 40%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+}
+
+.rain-bg {
+    background-image: radial-gradient(circle at 1px 1px, #0F4C8114 1px, transparent 0);
+    background-size: 22px 22px;
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+.d1 { animation-delay: .08s } .d2 { animation-delay: .16s } .d3 { animation-delay: .24s } .d4 { animation-delay: .32s }
+
+@keyframes marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+.marquee { animation: marquee 40s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+    .rise, .marquee { animation: none; }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] { display: contents !important; }
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+        padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+        column-gap: inherit; row-gap: inherit; gap: inherit;
+        border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+        border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+        border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+    }
+}

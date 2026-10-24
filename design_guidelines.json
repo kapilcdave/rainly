@@ -1,0 +1,87 @@
+{
+  "project_name": "RainCheck",
+  "app_type": "saas_app",
+  "archetype": "ORGANIC & EARTHY FINTECH (Trust, Calm, Protection)",
+  "emotional_tone": "Calm, reassuring, transparent, and approachable — feels like modern small-business insurance, not an intimidating Wall Street trading terminal",
+  "typography": {
+    "headings": {
+      "font_family": "Outfit, sans-serif",
+      "font_weights": "font-semibold to font-bold",
+      "letter_spacing": "tracking-tight",
+      "h1_size": "text-4xl sm:text-5xl lg:text-6xl",
+      "h2_size": "text-2xl sm:text-3xl lg:text-4xl",
+      "h3_size": "text-xl sm:text-2xl",
+      "h4_size": "text-lg sm:text-xl"
+    },
+    "body": {
+      "font_family": "Inter, sans-serif",
+      "size": "text-base",
+      "line_height": "leading-relaxed"
+    },
+    "mono_numeric": {
+      "font_family": "JetBrains Mono, monospace",
+      "usage": "For market prices, contract payouts, percentage hedges, probability odds, and live countdown timers"
+    }
+  },
+  "colors": {
+    "light_mode": {
+      "background": "#F8FAFC",
+      "card_surface": "#FFFFFF",
+      "border": "#E2E8F0",
+      "text_primary": "#0F172A",
+      "text_secondary": "#475569",
+      "text_muted": "#64748B"
+    },
+    "dark_mode": {
+      "background": "#0F172A",
+      "card_surface": "#1E293B",
+      "border": "#334155",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#CBD5E1",
+      "text_muted": "#94A3B8"
+    },
+    "brand_palette": {
+      "primary": "#0F4C81",
+      "primary_hover": "#0A3860",
+      "rain_blue": "#0284C7",
+      "teal_shield": "#0D9488",
+      "amber_warning": "#D97706",
+      "emerald_payout": "#059669",
+      "destructive": "#E11D48"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "p-6 md:p-8 lg:p-10",
+    "grid_strategy": "MODE B: High Density & Scannable Grid (grid-cols-1 md:grid-cols-3 lg:grid-cols-4)",
+    "gap_strategy": "gap-6 to gap-8",
+    "card_border_radius": "rounded-xl",
+    "border_padding": "Containers with borders MUST have p-6 or p-8 internal padding to avoid text collision"
+  },
+  "surfaces_and_effects": {
+    "header_nav": "Glassmorphism header (backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-800/60 z-50 sticky top-0)",
+    "cards": "Clean flat cards with crisp 1px stroke (border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow)",
+    "badges": "Rounded pill status badges (e.g. bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800)"
+  },
+  "key_features_layout": {
+    "landing_page": "Hero section explaining rain/weather hedging with plain English diagram, Google Sign-In CTA, visual comparison (Unprotected vs RainCheck Protected), live sample Kalshi contracts ticker",
+    "ai_onboarding": "1-Sentence input modal/page ('We are an artisanal ice cream shop in Austin with $45k summer monthly revenue'). AI parses city, climate sensitivity, revenue risk, and auto-generates profile",
+    "ai_risk_report": "Visual weather hazard breakdown with 1-3 tailored Kalshi market hedges (e.g., 'Austin Precip > 0.5 in on Summer Weekends'), confidence score, and projected revenue protection",
+    "weather_market_browser": "Filter by location, weather condition (Rain, Heatwave, Cold Snap, Snow), payout odds, settlement dates, with explicit Kalshi settlement rules in plain English tooltips",
+    "hedge_calculator": "Interactive slider for Coverage Level (25% to 100%), auto-calculating Premium Cost, Maximum Kalshi Payout, Net Revenue Offset, and Break-Even Weather Threshold",
+    "execution_modal": "Choice between 'Paper Trade (Sandbox)' and 'Execute on Kalshi (Live)'. Clear confirmation flow showing exact contract count, limit price, total cost, and max payout",
+    "hedge_dashboard": "Protected Revenue Gauge, Total Premium Spent, Total Payouts Collected, Active Weather Contracts List, Weather Alert Feed, Live Settlement Tracker",
+    "kalshi_settings": "Toggle between Kalshi Demo & Live API, API Key / Secret configuration with status validation indicator"
+  },
+  "testing_and_accessibility": {
+    "data_testid_requirement": "ALL interactive components (buttons, tabs, inputs, cards, sliders, modals, table rows) MUST include kebab-case data-testid attributes (e.g. data-testid='coverage-slider', data-testid='place-kalshi-trade-button')",
+    "contrast_standards": "All text elements must meet WCAG AA standards (minimum 4.5:1 for normal text). Explicit hover states with matching high-contrast text colors",
+    "animations": "Micro-interactions using Framer Motion or Tailwind transitions. All animations must respect prefers-reduced-motion"
+  },
+  "instructions_to_main_agent": [
+    "Use plain, human-friendly financial language across the application (e.g. 'Insurance Protection', 'Payout', 'Weather Event', 'Cost per Contract') while providing inline explainers for Kalshi terms ('YES price', 'Settlement Date').",
+    "Ensure the application comes with realistic, rich pre-filled demo data (Austin Ice Cream Shop, Miami Beach Cafe, Seattle Rooftop Bar) so users can immediately experience onboarding, AI risk analysis, hedge calculation, and market execution.",
+    "Support both Paper Trading (risk-free sandbox mode) and Kalshi Live API mode with clear visual badges so users never get confused about execution state.",
+    "Implement Sonner toast notifications for order placements, API key updates, and profile generation feedback.",
+    "Add responsive mobile layout with drawer/collapsible navigation and clean high-density metrics grids."
+  ]
+}
