@@ -65,7 +65,7 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <AppRouter />
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-center" richColors offset="calc(env(safe-area-inset-top) + 64px)" />
         </AuthProvider>
       </BrowserRouter>
     </div>

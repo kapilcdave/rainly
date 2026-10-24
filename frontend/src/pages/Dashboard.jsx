@@ -29,7 +29,7 @@ export const PositionRow = ({ p, onDelete }) => (
       <div className="font-medium text-slate-900">{p.headline || p.outcome}</div>
       <div className="text-xs text-slate-500">{p.title} · {p.side.toUpperCase()} · {p.contracts} × {cents(p.price)} · closes {closeLabel(p.close_time)}</div>
     </div>
-    <div className="col-span-2 flex flex-wrap items-center gap-4 md:contents">
+    <div className="col-span-2 flex flex-nowrap items-center gap-3 md:gap-4 md:contents">
     <ModeBadge mode={p.mode} environment={p.environment} />
     <div className="md:text-right md:w-28"><div className="text-xs text-slate-500">Spent</div><div className="font-num">{usd(p.cost, 2)}</div></div>
     <div className="md:text-right md:w-28"><div className="text-xs text-slate-500">Max payout</div><div className="font-num text-emerald-700">{usd(p.max_payout)}</div></div>
@@ -63,7 +63,7 @@ export default function Dashboard() {
           <h1 className="text-3xl sm:text-4xl font-semibold">Your weather protection</h1>
           <p className="text-slate-600 mt-2">Every hedge you hold, what it cost, and what it's paid back.</p>
         </div>
-        <Link to="/onboarding" className="ml-auto"><Button className="rounded-full bg-[#0F4C81] hover:bg-[#0A3860]" data-testid="add-business-button"><Plus size={16} className="mr-1" /> Add a business</Button></Link>
+        <Link to="/onboarding" className="ml-auto hidden md:block"><Button className="rounded-full bg-[#0F4C81] hover:bg-[#0A3860]" data-testid="add-business-button"><Plus size={16} className="mr-1" /> Add a business</Button></Link>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">

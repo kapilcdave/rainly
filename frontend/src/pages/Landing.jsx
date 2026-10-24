@@ -66,10 +66,11 @@ const STEPS = [
 ];
 
 export default function Landing() {
-  const { user, login } = useAuth();
+  const { user, login, loading } = useAuth();
   const navigate = useNavigate();
   const start = () => (user ? navigate("/dashboard") : login());
   if (isStandalone()) {
+    if (loading) return null;
     if (user) return <Navigate to="/dashboard" replace />;
     return <AppWelcome login={login} />;
   }

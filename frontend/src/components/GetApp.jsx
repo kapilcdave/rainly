@@ -30,7 +30,7 @@ export const GetAppButton = ({ className = "", testid = "get-app-button", label 
         {canPrompt ? <Download size={18} className="mr-2" /> : <Smartphone size={18} className="mr-2" />} {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm" data-testid="install-dialog">
+        <DialogContent className="max-w-sm w-[calc(100%-2rem)] rounded-2xl" data-testid="install-dialog">
           <DialogHeader>
             <DialogTitle className="font-display">Install RainCheck</DialogTitle>
             <DialogDescription>Free, no App Store needed. Full-screen with its own icon.</DialogDescription>

@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 2 tested the mobile and PWA work plus a light regression. Backend: 30/30 pytest pass (24 from the existing suite, 6 new tests for PWA assets and regressions). Frontend: every requested flow passed on desktop 1920x1080 and on iPhone UA at 390x844. Checked: the Get the app dialog (QR on desktop, iOS steps on iPhone, from both hero and footer buttons); 'Use in browser' sends you to Emergent auth; the service worker registers; standalone mode emulated with navigator.standalone shows app-welcome when logged out and redirects to /dashboard when logged in; the bottom tab bar works on mobile (all 4 tabs navigate and show the active state, the desktop nav is hidden, content clears the bar) and is hidden on desktop; the hedge sheet opens as a full-width bottom sheet from a Markets row and from review-hedge-button-0; the calculator updates for loss input and YES/NO; paper trades placed from both entry points showed up on the dashboard (1 -> 3 rows); onboarding chips show short labels. No functional bugs found. There are only minor design and robustness notes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Install dialog (mobile 390px)", "issues": ["DialogContent goes almost edge to edge (~3px side margin) with square corners. Suggest w-[calc(100%-2rem)] rounded-2xl on small screens."]},
+      {"screen": "Dashboard hedges list (mobile)", "issues": ["The delete-position trash icon wraps onto its own line below Paper/Spent/Max payout/Active and looks orphaned. Put it inline or in the header row of the card."]},
+      {"screen": "Toaster (mobile)", "issues": ["Toaster position is top-right on all screens. On phones it overlaps the sticky header and notch area. Consider position='top-center' or bottom with an offset above the tab bar on small screens."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_raincheck_api.py", "/app/backend/tests/test_raincheck_pwa_regression.py", "/app/test_reports/pytest/pytest_results_iter2.xml"],
+  "action_items": [
+    "Optional polish: give the install dialog side margins and rounded corners on mobile",
+    "Optional polish: fix the trash icon wrapping in the mobile hedge row",
+    "Optional: on mobile, move the Toaster so it doesn't overlap the header",
+    "Optional: in Landing.jsx standalone mode, wait for auth `loading` before rendering AppWelcome. Right now a logged-in user briefly sees the welcome screen before the redirect to /dashboard."
+  ],
+  "critical_code_review_comments": [
+    "Landing.jsx: the isStandalone() branch ignores AuthContext `loading`, so logged-in users briefly see AppWelcome. Render null/a splash while loading.",
+    "sw.js: only '/' and the icons are cached. Offline navigation falls back to the cached index.html, but the hashed JS/CSS bundles are not cached, so offline gives a blank screen. This is fine as 'installable only', but don't advertise offline support.",
+    "iOS standalone login: login() navigates to auth.emergentagent.com, which is outside the PWA scope. On real iOS home-screen apps this opens an in-app browser overlay, and the session cookie may land in a separate cookie jar. Emulation can't test this; verify on a real iPhone.",
+    "manifest uses purpose 'any maskable' on the same icon. Chrome recommends separate icons for 'any' and 'maskable' because maskable cropping can clip the umbrella."
+  ],
+  "updated_files": ["/app/backend/tests/test_raincheck_pwa_regression.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "The Bearer logout test inserts a throwaway session TEST_logout_* and the test itself deletes it through logout. The 2 paper positions created during UI testing (test-user-1) were deleted from Mongo afterwards. The original position 460688b681dd was kept.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Mobile testing: create a new browser context with an iPhone UA, viewport 390x844, is_mobile=True, and the session_token cookie test_session_raincheck. To emulate standalone, use add_init_script to define navigator.standalone=true. Screenshots from secondary contexts are saved to /app/.screenshots/ (use .jpeg). Markets-row HedgeSheet defaults loss to the user's business loss (1750), which is by design. Never log out with test_session_raincheck."
+}
