@@ -1,0 +1,126 @@
+{
+  "project_name": "Rainsure",
+  "archetype": "PARAMETRIC_WEATHER_FINTECH",
+  "theme": {
+    "mode": "light_first_with_dark_dashboard_elements",
+    "primary": "#0E487C",
+    "primary_hover": "#0B3862",
+    "secondary_blue": "#1E70B8",
+    "sky_cyan": "#38BDF8",
+    "sun_yellow_accent": "#FACC15",
+    "sun_amber": "#F59E0B",
+    "rain_navy": "#091E36",
+    "background_light": "#F8FAFC",
+    "background_dark": "#0B1324",
+    "surface_card": "#FFFFFF",
+    "surface_card_dark": "#131F37",
+    "border_subtle": "#E2E8F0",
+    "border_active": "#38BDF8",
+    "text_main": "#0F172A",
+    "text_muted": "#64748B",
+    "text_light": "#F8FAFC"
+  },
+  "typography": {
+    "headline_font": "Outfit, sans-serif",
+    "body_font": "Inter, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-semibold tracking-tight",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-sm sm:text-base leading-relaxed text-slate-700 dark:text-slate-300",
+      "big_stat": "text-3xl sm:text-5xl font-black tracking-tight font-mono text-cyan-600 dark:text-cyan-400"
+    }
+  },
+  "layout_and_spacing": {
+    "mobile_first": true,
+    "min_width_support": "375px",
+    "container_padding": "px-4 sm:px-6 lg:px-8",
+    "section_gap": "space-y-12 sm:space-y-20",
+    "card_padding": "p-5 sm:p-8",
+    "header_height": "h-16 sm:h-20"
+  },
+  "screens_and_architecture": [
+    {
+      "name": "Landing Hero & Features",
+      "route": "/",
+      "components": [
+        "Live Rain Odds Ticker (5 cities: Chicago, Miami, NYC, Austin, Seattle)",
+        "Hero Headline: 'Rain shouldn't cost you customers'",
+        "3-Step How It Works (1. Customer picks date -> 2. Kalshi live price -> 3. Instant auto-refund on rain)",
+        "Zero-Basis-Risk Trust Badge (NWS Station Data)",
+        "Interactive Live Demo Simulator"
+      ]
+    },
+    {
+      "name": "Merchant Onboarding",
+      "route": "/onboarding",
+      "components": [
+        "Business Name Input",
+        "Business Type Selector (Patio Restaurant, Food Truck, Outdoor Event, Boat Tour, Car Wash, Mini Golf)",
+        "City Dropdown (Chicago KORD, Miami KMIA, New York KNYC, Austin KAUS, Seattle KSEA)",
+        "Average Booking Value ($10 - $500)",
+        "Weekend Bookings Estimator",
+        "Instant Revenue Protection Estimate Calculator"
+      ]
+    },
+    {
+      "name": "Customer Checkout Widget",
+      "route": "/checkout-widget",
+      "components": [
+        "Phone-Sized Mobile Preview Card (375px constraint)",
+        "DatePicker with Weather Probability Indicator",
+        "Rain Guarantee Toggle ('Rain Chance 12% · Rain Refund $5.70')",
+        "Official Trigger Text Modal/Tooltip (rules_primary: 'Triggered by NWS station >0.10 in precip')",
+        "Interactive Order Confirmation simulation"
+      ]
+    },
+    {
+      "name": "Merchant Dashboard",
+      "route": "/dashboard",
+      "components": [
+        "Merchant Picker Header (Maria's Patio Taqueria Chicago, Bayfront Boat Tours Miami)",
+        "KPI Cards: Guarantees Sold, Refunds Promised, Contracts Held, Hedge Cost",
+        "'If it Rains vs If it Doesn't' Dual P&L Cards",
+        "Live City Rain Probability & Kalshi Order Book Depth Chart",
+        "Real-Time Hedge Execution Order Log with Transaction Hashes"
+      ]
+    },
+    {
+      "name": "Settlement Replay Engine",
+      "route": "/replay",
+      "components": [
+        "Historical Date Selector",
+        "Animated Resolution Timeline (Market Resolves YES/NO -> Refunds Issued -> Kalshi Hedge Pays -> Net Merchant P&L)",
+        "Interactive Comparison (Rainy Saturday vs Sunny Saturday)"
+      ]
+    },
+    {
+      "name": "Pitch Footer & Trust Center",
+      "route": "global-footer",
+      "components": [
+        "CFTC-Regulated Exchange Disclosure",
+        "Official Station Weather Data Clarification",
+        "No-Basis-Risk Guarantee Explanation"
+      ]
+    }
+  ],
+  "image_urls": {
+    "patio_restaurant": "https://images.unsplash.com/photo-1759050475187-674550fa911e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxvdXRkb29yJTIwcGF0aW8lMjByZXN0YXVyYW50JTIwZGluaW5nJTIwc3Vuc2hpbmV8ZW58MHx8fHwxNzkyODcwNzU5fDA&ixlib=rb-4.1.0&q=85",
+    "boat_tour": "https://images.unsplash.com/photo-1617170709172-d19ee6cd406c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjV8MHwxfHNlYXJjaHwyfHxib2F0JTIwdG91ciUyMG9jZWFuJTIwbWlhbWklMjBzdW5zaGluZXxlbnwwfHx8fDE3OTI4NzA3NTl8MA&ixlib=rb-4.1.0&q=85",
+    "rain_background": "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxyYWluJTIwd2luZG93JTIwZHJvcGxldHMlMjBibHVlJTIwaG91ciUyMHdlYXRoZXJ8ZW58MHx8fHwxNzkyODcwNzU5fDA&ixlib=rb-4.1.0&q=85"
+  },
+  "testing_guidelines": {
+    "data_testid_rule": "MUST include data-testid on every interactive button, input, toggle, select, tab, and KPI card.",
+    "convention": "kebab-case, e.g., data-testid='checkout-guarantee-toggle', data-testid='merchant-switcher-select', data-testid='kpi-total-refunds-promised'."
+  },
+  "instructions_to_main_agent": [
+    "Build a rich multi-screen SPA using React and React Router.",
+    "Provide seed merchants pre-loaded: Maria's Patio Taqueria (Chicago) and Bayfront Boat Tours (Miami).",
+    "Ensure all components are fully mobile responsive at 375px width.",
+    "Use Framer Motion for smooth tab switches and the Settlement Replay step-by-step animation.",
+    "Include sonner toast notifications for user interactions (e.g. hedge contract executed, checkout completed with rain protection, merchant profile saved).",
+    "Use Lucide icons extensively for weather and fintech visual cues (CloudRain, Sun, ShieldCheck, TrendingUp, DollarSign, Activity, CheckCircle, ArrowRight)."
+  ]
+}
