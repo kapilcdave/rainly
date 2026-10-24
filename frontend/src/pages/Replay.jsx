@@ -39,7 +39,7 @@ const Timeline = ({ ticker, value, testid }) => {
       <p className="mb-4 text-xs font-light text-zinc-500">{data.title} · priced at <span className="font-num text-zinc-300">${data.p.toFixed(2)}</span> → refund {usd(data.price)} each</p>
       {!data.offered && (
         <p data-testid={`${testid}-not-offered`} className="mb-4 rounded-lg border border-yellow-300/20 bg-yellow-300/[0.05] p-3 text-[11px] text-yellow-200/90">
-          Rain odds were above 60% when priced — RainSure would not have offered this refund. Shown for illustration.
+          Rain odds were above 60% when priced — Rainly would not have offered this refund. Shown for illustration.
         </p>
       )}
       <Step run={run} i={0} dot={yes ? "bg-sky-400" : "bg-yellow-300"} title={`Market settled ${yes ? "YES — it rained" : "NO — stayed dry"}`} value={data.result.toUpperCase()} />

@@ -15,7 +15,7 @@ const Logo = () => (
       <span className="absolute inset-0 rounded-full border border-sky-400" />
       <span className="absolute bottom-0 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-yellow-300" />
     </span>
-    <span className="text-[15px] font-medium tracking-tight text-white">RainSure</span>
+    <span className="text-[15px] font-medium tracking-tight text-white">Rainly</span>
   </Link>
 );
 

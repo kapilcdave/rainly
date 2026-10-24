@@ -8,6 +8,7 @@ Screens: Landing (hero, 3 steps, 5-city ticker), Merchant onboarding (name, type
 Seed: Maria's Patio Taqueria (Chicago, $45, 40 weekend guarantees), Bayfront Boat Tours (Miami). Style: originally rain/blue + sunny yellow; user later asked for dark, premium, minimal fintech. Works at 375px. No login (merchant picker).
 
 ## User choices
+- App renamed to "Rainly" (2026-10-24)
 - Real production Kalshi orders, simulated at live ask until API keys are added
 - Price = contracts × (rain odds + fee) × 1.20
 - Dark, premium, minimal look

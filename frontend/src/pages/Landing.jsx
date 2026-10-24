@@ -4,7 +4,7 @@ import { RainTicker } from "@/components/RainTicker";
 
 const STEPS = [
   { title: "Customer adds a rain refund", body: "At checkout they see the live rain chance and a small add-on price for their date." },
-  { title: "RainSure hedges on Kalshi", body: "One $1 YES contract per booking dollar, bought on the city's official rain market." },
+  { title: "Rainly hedges on Kalshi", body: "One $1 YES contract per booking dollar, bought on the city's official rain market." },
   { title: "Rain triggers refunds automatically", body: "When the market settles YES, the hedge pays and every customer gets their booking back." },
 ];
 
