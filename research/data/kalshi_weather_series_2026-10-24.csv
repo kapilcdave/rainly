@@ -1,0 +1,465 @@
+ticker,title,frequency,settlement_source
+ARCTICICEMAX,Arctic sea ice max extent,custom,National Snow & Ice Data Center
+ARCTICICEMIN,Arctic sea ice min extent,custom,National Snow & Ice Data Center
+ARTICICE,Arctic sea ice,custom,National Snow & Ice Data Center
+AVGTEMP,US average temp,monthly,National Centers for Environmental Information
+CO2,US CO2 totals,monthly,Energy Information Administration
+CORIVER,Lake Mead water level projections,annual,Bureau of Reclamation
+EARTHQUAKE,earthquake,custom,USGS
+ECLIPSECOVER,Cloud coverage in cities during eclipse,one_off,National Weather Service
+ECLIPSECOVERBUFF,Eclipse Cover Buffalo,one_off,National Weather Service
+EMERGENCYCOL,Natural disaster hits Columbus,custom,"National Weather Service (Columbus, OH)"
+EMERGENCYDES,Natural disaster hits Des Moines,custom,"National Weather Service (Des Moines, IA)"
+EMERGENCYHOU,Natural disaster hits Houston,custom,"National Weather Service (Houston, TX)"
+EMERGENCYJAC,Natural disaster hits Jackson,custom,"National Weather Service (Jackson, MS)"
+EMERGENCYLA,Natural disaster hits Los Angeles,custom,National Weather Service
+EMERGENCYLOU,Natural disaster hits Louisville,custom,"National Weather Service (Louisville, KY)"
+EMERGENCYMIA,Natural disaster hits Miami,custom,National Weather Service
+EMERGENCYNOLA,Natural disaster in New Orleans,custom,National Weather Service
+EMERGENCYPHIL,Natural disaster in Philadelphia,custom,"National Weather Service (Philadelphia, PA)"
+EMERGENCYRAP,Natural disaster hits Rapid City,custom,"National Weather Service (Rapid City, SD)"
+EMERGENCYSF,Natural disaster hits San Francisco,custom,"National Weather Service (San Francisco, CA)"
+EMERGENCYSTL,Natural disaster hits St. Louis,custom,"National Weather Service (St. Louis, MO)"
+EMERGENCYWIL,Natural disaster hits Wilmington,custom,National Weather Service (Wilmington)
+ERCOTX,Texas share of electricity from renewables,monthly,ERCOT
+EUCLIMATE,EU hits climate goals,one_off,EU
+EVSHARE,EV market share,custom,Argonne National Laboratory
+FEMA,States that declare natural disasters,annual,FEMA
+GTEMP,Hottest year ever,annual,"NASA Goddard
+Institute for Space Studies"
+HIGHAUS,Highest temperature in Austin,daily,National Weather Service
+HIGHCHI,Highest temperature in Chicago,daily,National Weather Service 
+HIGHMIA,Highest temperature in Miami,daily,National Weather Service
+HIGHNY,Highest temperature in NYC,daily,National Weather Service
+HIGHUS,High temp in United States,daily,National Weather Service (US High)
+HMONTH,Hottest month instance,monthly,NCEI
+HMONTHRANGE,Monthly Temperature Increase (ºC),custom,National Oceanic and Atmospheric Administration
+HOTYEAR,Global heat,annual,"NASA Goddard
+Institute for Space Studies"
+HURCAL,Hurricane hits California,custom,National Weather Service
+HURCAT,Hurricane category,custom,National Oceanic and Atmospheric Administration
+HURCATFL,Hurricane warning FL,custom,National Oceanic and Atmospheric Administration
+HURCATH,Hurricane Henri size,custom,National Oceanic and Atmospheric Administration
+HURCATI,Hurricane Ida size,custom,National Oceanic and Atmospheric Administration
+HURCHARL,Hurricane hits Charleston,custom,National Weather Service (Charleston)
+HURCLAND,Hurricanes making landfall,custom,National Oceanic and Atmospheric Administration
+HURCMAJ,Number of major hurricanes,custom,National Oceanic and Atmospheric Administration
+HURCOASTTEX,Hurricane hits coastal Texas,custom,National Weather Service (Corpus Christi area)
+HURCTOT,Number of hurricanes,annual,National Oceanic and Atmospheric Administration
+HURCTOTMAJ,Number of major hurricanes,annual,National Oceanic and Atmospheric Administration
+HURHAT,Hurricane hits Hatteras Island,custom,National Weather Service (Cape Hatteras)
+HURJACKFL,Hurricane hits Jacksonville,custom,"National Weather Service (Jacksonville, FL)"
+HURMIA,Hurricane hits Miami,custom,National Weather Service
+HURMYR,Hurricane hits North Myrtle Beach,custom,National Weather Service (North Myrtle Beach)
+HURNJ,Hurricane hitting New Jersey,custom,National Weather Service
+HURNO,Hurricane hits New Orleans,annual,National Weather Service
+HURNOR,Hurricane hits Norfolk,custom,"National Weather Service (Norfolk, VA)"
+HURNYC,Hurricane hits NYC,custom,National Weather Service
+HURORL,Hurricane hits Orlando,custom,National Weather Service
+HURSAV,Hurricane hits Savannah,custom,National Weather Service (Savannah)
+HURTB,Hurricane hits Tampa,custom,National Weather Service
+HURWIL,Hurricane hits Wilmington,custom,National Weather Service (Wilmington)
+INDIACLIMATE,India climate goals,custom,Indian government
+KILAUEA,Kilauea eruption,one_off,Government of Hawaii County
+KXALTAOPEN,Alta Opening,annual,USA Today
+KXALTASNOW,Snowfall in Alta Ski Resort,annual,OnTheSnow
+KXALYOPEN,Alyeska Opening,annual,USA Today
+KXAQICITY,AQI in city at time,custom,AirNow New York City
+KXARCTICICEMAX,Arctic sea ice max extent,custom,National Snow & Ice Data Center
+KXARCTICICEMIN,Arctic sea ice min extent,custom,National Snow & Ice Data Center
+KXARTICICE,Arctic sea ice,custom,National Snow & Ice Data Center
+KXASPENMTNOPEN,Aspen Mountain Opening,annual,USA Today
+KXASPENOPEN,Aspen Snowmass Opening,annual,Aspen Mountain
+KXASPSNOWM,Aspen Snow Monthly,monthly,the National Weather Service
+KXAUSSNOWM,Austin Snowfall Monthly,monthly,NWS Climatological Report Austin
+KXAVGTATL,Average Weekly Temp in Atlanta ,weekly,The Weather Company
+KXAVGTEMP,US average temp,monthly,National Centers for Environmental Information
+KXAVGTKAUS,Average Weekly Temp in Austin ,weekly,The Weather Company
+KXAVGTKDEN,Average Weekly Temp in Denver ,weekly,The Weather Company
+KXAVGTKDFW,Average Weekly Temp in Dallas ,weekly,The Weather Company
+KXAVGTKIAH,Average Weekly Temp in Houston (Bush) ,weekly,The Weather Company
+KXAVGTKLAS,Average Weekly Temp in Las Vegas ,weekly,The Weather Company
+KXAVGTKMSY,Average Weekly Temp in New Orleans ,weekly,The Weather Company
+KXAVGTKOKC,Average Weekly Temp in Oklahoma City ,weekly,The Weather Company
+KXAVGTKPHX,Average Weekly Temp in Phoenix ,weekly,The Weather Company
+KXAVGTKSAN,Average Weekly Temp in San Diego ,weekly,The Weather Company
+KXAVGTKSAT,Average Weekly Temp in San Antonio ,weekly,The Weather Company
+KXBACHELOROPEN,Mt. Bachelor Opening,annual,USA Today
+KXBALDYOPEN,Bald Mountain Opening,annual,USA Today
+KXBEAVERCLOSE,Beaver Creek Resort Closing,annual,Beaver Creek Resort Snow & Weather Report
+KXBEAVEROPEN,Beaver Creek Resort Opening,annual,Beaver Creek Resort Snow & Weather Report
+KXBEAVERSNOW,Beaver Creek snowfall,custom,Beaver Creek Resort Snow & Weather Report
+KXBIGBEAROPEN,Big Bear Mountain Resort opening,annual,USA Today
+KXBIGGESTQUAKE,Biggest earthquake,daily,the United States Geological Survey
+KXBIGGESTQUAKEH,Biggest earthquake hourly,hourly,the United States Geological Survey
+KXBIGSKYOPEN,Big Sky Opening,annual,USA Today
+KXBOSSNOWM,Boston Snow Monthly,monthly,The Weather Company
+KXBOSSNOWXMAS,Boston White Christmas,one_off,the National Weather Service
+KXBRECKCLOSE,Breckenridge Ski Resort Closing,annual,Breckenridge Ski Resort Snow & Weather Report
+KXBRECKOPEN,Breckenridge Ski Resort Opening,annual,Breckenridge Ski Resort Snow & Weather Report
+KXCHISNOWM,Chicago Snowfall Monthly,monthly,The Weather Company
+KXCHISNOWXMAS,Chistmas Chicago ,one_off,NWS Climatological Report Chicago O'Hare
+KXCITIESWEATHER,Highest temperature in cities,daily,National Weather Service
+KXCO2,US CO2 totals,monthly,Energy Information Administration
+KXCO2LEVEL,CO2 level,custom,with data provided by NOAA Global Monitoring Laboratory
+KXCOPPEROPEN,Copper Mountain Opening,annual,Copper Mountain Resort
+KXCORIVER,Lake Mead water level projections,annual,Bureau of Reclamation
+KXDALSNOWM,Dallas Snowfall Monthly,monthly,NWS Climatological Report Dallas
+KXDCSNOWM,DC Monthly Snow,monthly,The Weather Company
+KXDEERVALLEYOPEN,Deer Valley opening,annual,USA Today
+KXDENHIGH,Highest temperature in Denver,daily,NWS Climatological Report
+KXDENSNOWM,Denver snowfall monthly,monthly,The Weather Company
+KXDENSNOWMB,Denver monthly snow,monthly,National Weather Service
+KXDENSNOWXMAS,Denver Snow Christmas,one_off,the National Weather Service
+KXDETSNOWM,Detroit Monthly Snow,monthly,The Weather Company
+KXDROUGHTLEVEL,Drought level,one_off,U.S. Drought Monitor
+KXDVHIGH,Death Valley temperature,daily,National Weather Service
+KXEARTHQUAKE,earthquake,custom,USGS
+KXEARTHQUAKECALIFORNIA,Earthquake in California,custom,USGS
+KXEARTHQUAKEJAPAN,Earthquake in Japan,custom,USGS
+KXEARTHQUAKEJAPANTATSUKI,Earthquake in Japan July 2025,custom,USGS
+KXEARTHQUAKELA,Earthquake in LA,custom,USGS
+KXEARTHQUAKEM,Earthquake monthly,one_off,USGS
+KXEARTHQUAKEM7,Will there be a 7.0 mag earthquake in June,one_off,USGS
+KXECLIPSECOVER,Cloud coverage in cities during eclipse,one_off,National Weather Service
+KXECLIPSECOVERBUFF,Eclipse Cover Buffalo,one_off,National Weather Service
+KXECLIPSEREYK,Solar Eclipse Reykjavik,one_off,National Weather Service
+KXELNINO,Will El Niño conditions be declared?,one_off, San Francisco Unified School District
+KXEMERGENCYCOL,Natural disaster hits Columbus,custom,"National Weather Service (Columbus, OH)"
+KXEMERGENCYDES,Natural disaster hits Des Moines,custom,"National Weather Service (Des Moines, IA)"
+KXEMERGENCYHOU,Natural disaster hits Houston,custom,"National Weather Service (Houston, TX)"
+KXEMERGENCYJAC,Natural disaster hits Jackson,custom,"National Weather Service (Jackson, MS)"
+KXEMERGENCYLA,Natural disaster hits Los Angeles,custom,National Weather Service
+KXEMERGENCYLOU,Natural disaster hits Louisville,custom,"National Weather Service (Louisville, KY)"
+KXEMERGENCYMIA,Natural disaster hits Miami,custom,National Weather Service
+KXEMERGENCYNOLA,Natural disaster in New Orleans,custom,National Weather Service
+KXEMERGENCYPHIL,Natural disaster in Philadelphia,custom,"National Weather Service (Philadelphia, PA)"
+KXEMERGENCYRAP,Natural disaster hits Rapid City,custom,"National Weather Service (Rapid City, SD)"
+KXEMERGENCYSF,Natural disaster hits San Francisco,custom,"National Weather Service (San Francisco, CA)"
+KXEMERGENCYSTL,Natural disaster hits St. Louis,custom,"National Weather Service (St. Louis, MO)"
+KXEMERGENCYWIL,Natural disaster hits Wilmington,custom,National Weather Service (Wilmington)
+KXERCOTX,Texas share of electricity from renewables,monthly,ERCOT
+KXERUPTETNA,Etna,custom,ABC
+KXERUPTKILUAEA,Kiluaea,custom,ABC
+KXERUPTSUPER,Supervolcano,custom,ABC
+KXEUCLIMATE,EU hits climate goals,one_off,EU
+KXEVSHARE,EV market share,custom,Argonne National Laboratory
+KXFEMA,States that declare natural disasters,annual,FEMA
+KXFIRSTHURRICANE,First Hurricane,custom,National Weather Service
+KXGTEMP,Hottest year ever,annual,"NASA Goddard
+Institute for Space Studies"
+KXHDDCVG,Cincinnati heating degree days,custom,The Weather Company
+KXHEATAPHX,Average weekly heat in Phoenix,weekly,NWS Climatological Report Phoenix
+KXHEATWARNING,Heat warning,custom,NWS Extreme Heat Warnings
+KXHEAVENLYCLOSE,Heavenly Mountain Resort Closing,annual,Heavenly Mountain Resort Snow & Weather Report
+KXHEAVENLYOPEN,Heavenly Mountain Resort Opening,annual,Heavenly Mountain Resort Snow & Weather Report
+KXHIGHAUS,Highest temperature in Austin,daily,The Weather Company
+KXHIGHCHI,Highest temperature in Chicago,daily,The Weather Company
+KXHIGHDEN,Highest temperature in Denver,daily,The Weather Company
+KXHIGHHOU,Highest temperature in Houston,daily,NWS Climatological Report Houston
+KXHIGHLAX,Highest temperature in Los Angeles,daily,The Weather Company
+KXHIGHMIA,Highest temperature in Miami,daily,The Weather Company
+KXHIGHNY,Highest temperature in NYC,daily,The Weather Company
+KXHIGHNYD,Hourly Directional NYC Temperature,hourly,The Weather Company
+KXHIGHOU,Highest temperature in Houston,daily,NWS Climatological Report Houston
+KXHIGHPHIL,Highest temperature in Philadelphia,daily,The Weather Company
+KXHIGHTATL,Atlanta Max Temperature,daily,The Weather Company
+KXHIGHTBOS,Boston Maximum Daily Temperature,daily,The Weather Company
+KXHIGHTCYYZ,Daily high temp Toronto,daily,The Weather Company
+KXHIGHTDAL,Dallas Maximum Temperature,daily,The Weather Company
+KXHIGHTDC,Washington DC Daily Max Temp,daily,The Weather Company
+KXHIGHTEBBR,Daily high temp Brussels,daily,The Weather Company
+KXHIGHTEDDB,Daily high temp Berlin,daily,The Weather Company
+KXHIGHTEDDF,Daily high temp Frankfurt,daily,The Weather Company
+KXHIGHTEGLL,Daily high temp London ,daily,The Weather Company
+KXHIGHTEHAM,Amsterdam Daily High Temperature,daily,The Weather Company
+KXHIGHTEMPDEN,High temperature denver,custom,NWS Climatological Report
+KXHIGHTEWR,"Newark, NJ (EWR) Daily Max Temp",daily,The Weather Company
+KXHIGHTHOU,Daily High Temperature Houston,daily,The Weather Company
+KXHIGHTKSAN,Daily High Temperature San Diego,daily,The Weather Company
+KXHIGHTLFPG,Daily high temp Paris,daily,The Weather Company
+KXHIGHTLSGG,Daily high temp Geneva,daily,The Weather Company
+KXHIGHTLTFM,Daily high temp Istanbul,daily,The Weather Company
+KXHIGHTLV,Las Vegas Max Daily Temperature,daily,The Weather Company
+KXHIGHTMIN,Minneapolis Daily High Temperature,daily,The Weather Company
+KXHIGHTMMMX,Daily high temp Mexico City,daily,The Weather Company
+KXHIGHTNOLA,New Orleans Max temp Daily,daily,The Weather Company
+KXHIGHTOKC,Oklahoma City Maximum High Temperature,daily,The Weather Company
+KXHIGHTOMDB,Daily high temp Dubai,daily,The Weather Company
+KXHIGHTPHX,Phoenix High Temperature Daily,daily,The Weather Company
+KXHIGHTRJTT,Daily high temp Tokyo,daily,The Weather Company
+KXHIGHTRKSI,Daily high temp Seoul,daily,The Weather Company
+KXHIGHTSAN,High Temperature San Diego,daily,The Weather Company
+KXHIGHTSATX,San Antonio Daily Maximum Temperature,daily,The Weather Company
+KXHIGHTSBGR,Daly high temp Sao Paulo,daily,The Weather Company
+KXHIGHTSDF,HIGHEST Temperature SATX,daily,The Weather Company
+KXHIGHTSEA,Seattle Maximum Temperature Daily,daily,The Weather Company
+KXHIGHTSFO,San Francisco High Temperature Daily,daily,The Weather Company
+KXHIGHTTTN,"Trenton, NJ Daily Max Temp",daily,The Weather Company
+KXHIGHTVABB,Daily high temp Mumbai,daily,The Weather Company
+KXHIGHTVHHH,Daily high temp Hong Kong,daily,The Weather Company
+KXHIGHTWSSS,Daily high temp Singapore,daily,The Weather Company
+KXHIGHTYSSY,Daily high temp Sydney,daily,The Weather Company
+KXHIGHTZBAA,Beijing Daily High Temperature,daily,The Weather Company
+KXHIGHTZSPD,Daily high temp Shanghai,daily,The Weather Company
+KXHIGHUS,High temp in United States,daily,National Weather Service (US High)
+KXHMONTH,Hottest month instance,monthly,NCEI
+KXHMONTHRANGE,Monthly Temperature Increase (ºC),custom,National Oceanic and Atmospheric Administration
+KXHOBBYTEMP,Maximum temperature at Houston Hobby Airport,one_off,if not U.S.: the national weather service governing area.
+KXHOLIDAYTMAX,Max temperature holiday by city,custom,The Weather Company
+KXHOLIDAYTMIN,Min temperature holidays ,custom,The Weather Company
+KXHOTYEAR,Global heat,annual,"NASA Goddard
+Institute for Space Studies"
+KXHOUHIGH,Highest temperature in Houston,daily,NWS Climatological Report Houston
+KXHOUSNOWM,Houston Snowfall Markets,monthly,NWS Climatological Report Houston
+KXHURCAL,Hurricane hits California,custom,National Weather Service
+KXHURCAT,Hurricane category,custom,National Oceanic and Atmospheric Administration
+KXHURCATFL,Hurricane warning FL,custom,National Oceanic and Atmospheric Administration
+KXHURCATH,Hurricane Henri size,custom,National Oceanic and Atmospheric Administration
+KXHURCATI,Hurricane Ida size,custom,National Oceanic and Atmospheric Administration
+KXHURCHARL,Hurricane hits Charleston,custom,National Weather Service (Charleston)
+KXHURCITYHOU,Houston hurricane landfall,custom,National Hurricane Center of the National Weather Service of the National Oceanic and Atmospheric Administration
+KXHURCITYTPA,Tampa hurricane landfall,custom,National Hurricane Center of the National Weather Service of the National Oceanic and Atmospheric Administration
+KXHURCLAND,Hurricanes making landfall,custom,National Oceanic and Atmospheric Administration
+KXHURCMAJ,Number of major hurricanes,custom,National Oceanic and Atmospheric Administration
+KXHURCOASTTEX,Hurricane hits coastal Texas,custom,National Weather Service (Corpus Christi area)
+KXHURCROSSHOU,Houston hurricane crossing,custom,The Washington Post
+KXHURCTOT,Number of hurricanes,annual,National Oceanic and Atmospheric Administration
+KXHURCTOTMAJ,Number of major hurricanes,annual,National Oceanic and Atmospheric Administration
+KXHURHAT,Hurricane hits Hatteras Island,custom,National Weather Service (Cape Hatteras)
+KXHURJACKFL,Hurricane hits Jacksonville,custom,"National Weather Service (Jacksonville, FL)"
+KXHURMIA,Hurricane hits Miami,custom,National Weather Service
+KXHURMYR,Hurricane hits North Myrtle Beach,custom,National Weather Service (North Myrtle Beach)
+KXHURNJ,Hurricane hitting New Jersey,custom,National Weather Service
+KXHURNO,Hurricane hits New Orleans,annual,National Weather Service
+KXHURNOR,Hurricane hits Norfolk,custom,"National Weather Service (Norfolk, VA)"
+KXHURNYC,Hurricane hits NYC,custom,National Weather Service
+KXHURORL,Hurricane hits Orlando,custom,National Weather Service
+KXHURPATHAL,hurricane hits alabama,one_off,AccuWeather
+KXHURPATHFLA,hurricane hits florida,custom,AccuWeather
+KXHURPATHGENERAL,HURRICANE GENERAL LANDFALL,one_off,AccuWeather
+KXHURPATHGENERALMAJOR,MAJOR HURRICANE GENERAL LANDFALL,custom,AccuWeather
+KXHURPATHGULFCOAST,GULF COAST HURRICANE LANDFALL,custom,AccuWeather
+KXHURPATHHAWAII,HURRICANE HITS HAWAII,custom,AccuWeather
+KXHURPATHHOU,hurricane hits houston,custom,AccuWeather
+KXHURPATHNC,Hurricane hits north carolina,one_off,AccuWeather
+KXHURPATHSCAROLINA,hurricane hits SOUTH CAROLINA,custom,AccuWeather
+KXHURRICANE,Hurricanes,custom,National Oceanic and Atmospheric Administration
+KXHURRICANENAMES,Hurricane Names,custom,National Weather Service
+KXHURRLANDFL4,Florida Category 4+ hurricane landfall,one_off,National Hurricane Center of the National Weather Service of the National Oceanic and Atmospheric Administration
+KXHURRLANDNE3,Northeast Category 3+ hurricane landfall,one_off,National Hurricane Center of the National Weather Service of the National Oceanic and Atmospheric Administration
+KXHURSAV,Hurricane hits Savannah,custom,National Weather Service (Savannah)
+KXHURTB,Hurricane hits Tampa,custom,NWS Climatological Report
+KXHURWIL,Hurricane hits Wilmington,custom,National Weather Service (Wilmington)
+KXINDIACLIMATE,India climate goals,custom,Indian government
+KXJACKSONOPEN,Jackson Hole Mountain Resort Opening,annual,USA Today
+KXJACWSNOWM,"Jackson, WY Monthly Snow",monthly,National Weather Service
+KXKEYSTONECLOSE,Keystone Resort Closing,annual,Keystone Resort Snow & Weather Report
+KXKEYSTONEOPEN,Keystone Resort Opening,annual,Keystone Resort Snow & Weather Report
+KXKEYSTONESNOW,Keystone snowfall,custom,Keystone Resort Snow & Weather Report
+KXKILAUEA,Kilauea eruption,one_off,Government of Hawaii County
+KXKILLINGTONOPEN,Killington Opening,annual,USA Today
+KXLAXSNOWM,LA Snowfall Markets,monthly,NWS Climatological Report Los Angeles
+KXLOWAUS,Lowest temperature in Austin,daily,National Weather Service
+KXLOWCHI,Lowest temperature in Chicago,daily,National Weather Service
+KXLOWDEN,Lowest temperature in Denver,daily,National Weather Service
+KXLOWLAX,Lowest temperature in Los Angeles,daily,National Weather Service
+KXLOWMIA,Lowest temperature in Miami,daily,National Weather Service
+KXLOWNY,Lowest Temperature in NYC,daily,The Weather Company
+KXLOWNYC,Lowest temperature in New York,daily,National Weather Service
+KXLOWPHIL,Lowest temperature in Philadelphia,daily,National Weather Service
+KXLOWTATL,Low Temperature Atlanta,daily,The Weather Company
+KXLOWTAUS,Lowest temperature in Austin,daily,The Weather Company
+KXLOWTBOS,Low Temperature Boston,daily,The Weather Company
+KXLOWTCHI,Lowest Temperature Chicago,daily,The Weather Company
+KXLOWTCYYZ,Daily low temp Toronto,daily,The Weather Company
+KXLOWTDAL,Lowest temperature Dallas,daily,The Weather Company
+KXLOWTDC,Lowest Temperature DC ,daily,The Weather Company
+KXLOWTDEN,Lowest temperature in Denver,daily,The Weather Company
+KXLOWTEBBR,Daily low temp Brussels,daily,The Weather Company
+KXLOWTEDDB,Daily Low Temp Berlin ,daily,The Weather Company
+KXLOWTEDDF,Daily low temp Frankfurt,daily,The Weather Company
+KXLOWTEGLL,Daily low temp London,daily,The Weather Company
+KXLOWTEHAM,Amsterdam Daily Low Temperature,daily,The Weather Company
+KXLOWTEWR,"Newark, NJ (EWR) Daily Low Temp",daily,The Weather Company
+KXLOWTHOU,Low Temperature Houston,daily,The Weather Company
+KXLOWTKSAN,Low Temperature San Diego,daily,The Weather Company
+KXLOWTLAX,Lowest Temperature in LA,daily,The Weather Company
+KXLOWTLFPG,Daily low temp Paris ,daily,The Weather Company
+KXLOWTLSGG,Daily low temperature Geneva,daily,The Weather Company
+KXLOWTLSSG,Daily low temp Geneva,daily,National Weather Service
+KXLOWTLTFM,Daily low temp Istanbul,daily,The Weather Company
+KXLOWTLV,Las Vegas Daily Low Temperature,daily,The Weather Company
+KXLOWTMIA,Lowest temperature in Miami,daily,The Weather Company
+KXLOWTMIN,Low  temperature Minnesota,daily,The Weather Company
+KXLOWTMMMX,Daily low temp Mexico City,daily,The Weather Company
+KXLOWTNOLA,NOLA Low Temperature,daily,The Weather Company
+KXLOWTNYC,Lowest temperature in NYC,daily,The Weather Company
+KXLOWTOKC,Low Temperature Oklahoma City,daily,The Weather Company
+KXLOWTOMDB,Daily low temp Dubai,daily,The Weather Company
+KXLOWTPHIL,Lowest temperature in Philadelphia,daily,The Weather Company
+KXLOWTPHX,Low Temperature Phoenix,daily,The Weather Company
+KXLOWTRJTT,Daily low temp Tokyo,daily,The Weather Company
+KXLOWTRKSI,Daily low temp Seoul,daily,The Weather Company
+KXLOWTSAN,Low Temperature San Diego,daily,The Weather Company
+KXLOWTSATX,Lowest Temperature SATX,daily,The Weather Company
+KXLOWTSBGR,Daily low temp Sao Paulo ,daily,The Weather Company
+KXLOWTSDF,Lowest Temperature SDX,daily,The Weather Company
+KXLOWTSEA,Low Temperature Seattle,daily,The Weather Company
+KXLOWTSFO,Lowest Temperature San Francisco,daily,The Weather Company
+KXLOWTTTN,Trenton Daily low temp ,daily,The Weather Company
+KXLOWTVABB,Daily low temp Mumbai,daily,The Weather Company
+KXLOWTVHHH,Daily low temp Hong Kong,daily,The Weather Company
+KXLOWTWSSS,Daily low temp Singapore,daily,The Weather Company
+KXLOWTYSSY,Daily low temp Sydney,daily,The Weather Company
+KXLOWTZBAA,Beijing Daily Low Temperature,daily,The Weather Company
+KXLOWTZSPD,Daily low temp Shanghai,daily,The Weather Company
+KXMAMMOTHOPEN,Mammoth Mountain opening,annual,USA Today
+KXMAMMOTHSNOW,Mammoth Main Lodge seasonal snowfall,annual,OnTheSnow
+KXMAXTEMP100,Max temp 100,custom,the National Weather Service
+KXMEAD,Lake Mead water levels,monthly,U.S. Bureau of Reclamation
+KXMIASNOWM,Chicago Snowfall Monthly,one_off,NWS Climatological Report Miami
+KXMICHTEMP,Lake Michigan surface water temperature,monthly,National Oceanic and Atmospheric Administration
+KXMINNYC,Min NYC temp,monthly,NWS Climatological Report
+KXMKESNOWM,Milwaukee monthly snowfall,monthly,The Weather Company
+KXMONTHLOWMSN,Madison monthly low temperature,monthly,The Weather Company
+KXMSNLOWT,Madison temperature below threshold,monthly,The Weather Company
+KXMSPSNOWM,Minneapolis monthly snowfall,monthly,The Weather Company
+KXNAMEDSTORM,Named Storms,custom,National Oceanic and Atmospheric Administration
+KXNEXTCAT5HURDATE,Next CAT 5 hurricane date,custom,National Oceanic and Atmospheric Administration
+KXNEXTHURDATE,Next hurricane date,custom,National Oceanic and Atmospheric Administration
+KXNORTHSTARCLOSE,Northstar California Resort Closing,annual,Northstar California Resort Snow & Weather Report
+KXNORTHSTAROPEN,Northstar California Resort Opening,annual,Northstar California Resort Snow & Weather Report
+KXNORTHSTARSNOW,Northstar snowfall,custom,Northstar California Resort Snow & Weather Report
+KXNYCSNOWM,NYC Snowfall monthly,monthly,The Weather Company
+KXNYCSNOWXMAS,NYC Snow christmas,one_off,NWS Climatological Report NY
+KXPARKCCLOSE,Park City Mountain Closing,annual,Park City Mountain Snow & Weather Report
+KXPARKCOPEN,Park City Mountain Opening,annual,Park City Mountain Snow & Weather Report
+KXPARKCSNOW,Park City Mountain snowfall,custom,the New York Times
+KXPHILHIGH,Highest temperature in Philadelphia,custom,NWS Climatological Report
+KXPHILSNOWM,Philadelphia Monthly Snow,monthly,The Weather Company
+KXPITSNOWM,Pittsburgh monthly snowfall,monthly,The Weather Company
+KXRAIN,Where will it rain daily,daily,The Weather Company
+KXRAINABQM,Rain in Albuquerque,monthly,The Weather Company
+KXRAINATLM,Rain in Atlanta,monthly,The Weather Company
+KXRAINAUSM,RAIN AUSTIN,custom,The Weather Company
+KXRAINBOSM,Rain in Boston,monthly,The Weather Company
+KXRAINCHIM,Rain Chicago,monthly,The Weather Company
+KXRAINCLLM,RAIN COLLEGE STATION,custom,The Weather Company
+KXRAINCMHM,RAIN COLUMBUS,custom,The Weather Company
+KXRAIND,Rain Daily,daily,National Weather Service
+KXRAINDALM,Rain Dallas,custom,The Weather Company
+KXRAINDC,Daily Rain DC,daily,The Weather Channel
+KXRAINDCM,Rain in Washington DC,monthly,The Weather Company
+KXRAINDENM,RAIN DENVER,monthly,The Weather Company
+KXRAINDNYC,Daily Rain - NYC,daily,National Weather Service
+KXRAINDPARIS,Daily Rain - Paris ,daily,The Weather Company
+KXRAINDTWM,Rain in Detroit,monthly,The Weather Company
+KXRAINEWRM,Rain in Newark,monthly,The Weather Company
+KXRAINHOLIDAY,Where will it rain on holidays? ,custom,The Weather Channel
+KXRAINHOUM,Rain Houston,custom,The Weather Company
+KXRAININDM,Rain in Indianapolis,monthly,The Weather Company
+KXRAINLAXM,Rain Los Angeles,custom,The Weather Company
+KXRAINLEXM,RAIN LEXINGTON,custom,The Weather Company
+KXRAINLVM,Rain in Las Vegas,monthly,The Weather Company
+KXRAINMIAM,Rain Miami,custom,The Weather Company
+KXRAINMINM,Rain in Minneapolis,monthly,The Weather Company
+KXRAINMKEM,RAIN MILWAUKEE,custom,The Weather Company
+KXRAINNAPAM,Napa rainfall totals,monthly,The Weather Company
+KXRAINNOLAM,Rain in New Orleans,monthly,The Weather Company
+KXRAINNYC,NYC rain,daily,NWS Climatological Report
+KXRAINNYCM,Monthly rain in New York,monthly,NWS Climatological Report NY
+KXRAINNYCW,How much will it rain in NYC this week? ,weekly,The Weather Company
+KXRAINOKCM,Rain in Oklahoma City,monthly,The Weather Company
+KXRAINONT,"Rain in Ontario, California",daily,The Weather Company
+KXRAINPHILM,Rain in Philadelphia,monthly,The Weather Company
+KXRAINPHXM,Rain in Phoenix,monthly,The Weather Company
+KXRAINPITM,Rain in Pittsburgh,monthly,The Weather Company
+KXRAINPVDM,RAIN PROVIDENCE,custom,The Weather Company
+KXRAINSATXM,Rain in San Antonio,monthly,The Weather Company
+KXRAINSBOS,Rainstorm in Boston,custom,The Weather Company
+KXRAINSEA,Seattle rain,daily,National Weather Service
+KXRAINSEAM,RAIN SEATTLE,custom,The Weather Company
+KXRAINSFOM,RAIN SAN FRANCISCO,custom,The Weather Company
+KXRAINSGFM,Rain in Springfield,monthly,The Weather Company
+KXRAINSNYC,Rainstorm in NYC,custom,The Weather Company
+KXRAINSTLM,Rain in St. Louis,monthly,The Weather Company
+KXRAINSTPM,St Petersburg Rain Monthly,monthly,The Weather Company
+KXRAINTPAM,Rain in Tampa,monthly,The Weather Company
+KXRAINTTNM,Rain in Trenton,monthly,The Weather Company
+KXRAINWKND,Where will it rain this weekend?,weekly,The Weather Company
+KXRAINWPBM,Rain in West Palm Beach,monthly,The Weather Company
+KXRONI,RONI,one_off, San Francisco Unified School District
+KXSEASNOWM,Seattle Snowfall Monthly,monthly,The Weather Company
+KXSFOSNOWM,San Francisco Snowfall markets,monthly,NWS Climatological Report San Francisco
+KXSIERRAOPEN,Sierra-at-Tahoe Opening,annual,Sierra-at-Tahoe Resort
+KXSJCLOWT,Monthly minimum temperature in San Jose,monthly,The Weather Company
+KXSLCSNOWM,Salt Lake City Monthly,monthly,The Weather Company
+KXSNOWAZ,Snow in Phoenix,custom,National Weather Service
+KXSNOWBASINOPEN,Snowbasin Opening,annual,Snowbasin Resort
+KXSNOWBIRDOPEN,Snowbird Opening,annual,USA Today
+KXSNOWCHIM,Total snow in Chicago,one_off,NOAA
+KXSNOWNY,Snow in NYC,custom,National Weather Service 
+KXSNOWNYC,SNOW IN NYC,custom,the National Weather Service
+KXSNOWNYM,Total snow in NYC,monthly,NOAA
+KXSNOWS,White Christmas,annual,National Weather Service
+KXSNOWSTORM,Snowstorms,one_off,the National Weather Service
+KXSPURRERUPT,Mount Spurr eruption,custom,Alaska Volcano Observatory
+KXSTEAMBOATOPEN,Steamboat opening,annual,USA Today
+KXSTOWECLOSE,Stowe Mountain Resort Closing,annual,Stowe Mountain Resort Snow & Weather Report
+KXSTOWEOPEN,Stowe Mountain Resort Opening,annual,Stowe Mountain Resort Snow & Weather Report
+KXSTOWESNOW,Stowe snowfall,custom,the New York Times
+KXSTRATTONOPEN,Stratton opening,annual,USA Today
+KXSUGARBUSHOPEN,Sugarbush opening,annual,USA Today
+KXTEMP,Average annual temperature deviation,annual,"NASA Goddard
+Institute for Space Studies"
+KXTEMPAUSH,Hourly Directional Austin Temperature,hourly,The Weather Company
+KXTEMPBOSH,Hourly Directional Boston Temperature,hourly,The Weather Company
+KXTEMPCHIH,Hourly Directional Chicago Temperature,hourly,The Weather Company
+KXTEMPCHIHS,Hourly Directional Chicago Metro Temperature,hourly,Kalshi
+KXTEMPCHIMETROHS,Hourly Directional Chicago Metro Temperature,hourly,Kalshi
+KXTEMPDCH,Hourly Directional DC Temperature,hourly,The Weather Company
+KXTEMPLAHS,Hourly Directional Coastal LA Temperature,hourly,Kalshi
+KXTEMPLAXH,Hourly Directional Los Angeles Temperature,hourly,The Weather Company
+KXTEMPLAXHS,Hourly Directional Coastal LA Temperature,hourly,Synoptic Data
+KXTEMPMIAH,Hourly Directional Miami Temperature,hourly,Synoptic Data
+KXTEMPMON,Global monthly temperature average,monthly,National Oceanic and Atmospheric Administration
+KXTEMPNYCH,Hourly Directional NYC Temperature,hourly,The Weather Company
+KXTEMPNYCHS,Hourly Directional NYC Temperature,hourly,Synoptic Data
+KXTORNADO,Number of Tornadoes,monthly,National Oceanic and Atmospheric Administration
+KXTROPSTORM,Number of tropical storms,annual,National Oceanic and Atmospheric Administration
+KXTSNOWFALLBIGSKYM,Big Sky monthly snowfall,monthly,OnTheSnow - Big Sky
+KXTSUNAMI,Tsunami ,custom,NCEI
+KXTTNSNOWM,Trenton monthly snowfall,monthly,The Weather Company
+KXTXURI,Will the average temperature in Texas (DFW & IAH) fall below 20°F for at least 2 days within a 4-day span?,one_off,National Weather Service
+KXUSCLIMATE,US climate goals,one_off,EPA
+KXVAILOPEN,Vail Mountain Opening,annual,Vail Resorts
+KXVEI4,VEI 4,one_off,the U
+KXWARMING,Global warming,one_off,Berkeley Earth
+KXWASDESTATCORN,Corn,one_off,the World Agricultural Outlook Board
+KXWEEKHTLAS,Weekly high temperature Las Vegas,weekly,The Weather Company
+KXWEEKHTLAX,Weekly high temperature Los Angeles,weekly,The Weather Company
+KXWEEKHTMIA,Weekly high temperature Miami,weekly,The Weather Company
+KXWEEKHTNYC,Weekly high temperature New York,weekly,The Weather Company
+KXWEEKHTPHX,Weekly high temperature Phoenix,weekly,The Weather Company
+KXWHISTLEROPEN,Whistler Blackcomb opening,one_off,Vail Resorts
+KXWINTERPARKOPEN,Winter Park opening,annual,USA Today
+KXXFLARE,X flare,custom,NASA Solar Dynamics Observatory
+MEAD,Lake Mead water levels,monthly,U.S. Bureau of Reclamation
+MICHTEMP,Lake Michigan surface water temperature,monthly,National Oceanic and Atmospheric Administration
+MINNYC,Min NYC temp,monthly,National Weather Service
+RAINMIA,Miami rain,custom,
+RAINNYC,NYC rain,daily,National Weather Service
+RAINNYCM,Monthly rain in New York,monthly,National Weather Service
+RAINSEA,Seattle rain,daily,National Weather Service
+SNOW,Snow totals,one_off,
+SNOWCHIM,Total snow in Chicago,one_off,NOAA
+SNOWNY,Total snow in NYC,custom,National Weather Service 
+SNOWNYM,Total snow in NYC,monthly,NOAA
+TEMP,Average annual temperature deviation,annual,"NASA Goddard
+Institute for Space Studies"
+TEMPMON,Global monthly temperature average,monthly,National Oceanic and Atmospheric Administration
+TORNADO,Number of Tornadoes,monthly,National Oceanic and Atmospheric Administration
+TROPSTORM,Number of tropical storms,annual,National Oceanic and Atmospheric Administration
+TSUNAMI,Tsunami ,custom,NCEI
+USCLIMATE,US climate goals,one_off,EPA

@@ -1,0 +1,64 @@
+ticker,title,category,frequency,settlement_source
+KXA100MAX,A100 Yearly Directional Price,Science and Technology,annual,Ornn
+KXA100MON,A100 Monthly Price,Science and Technology,one_off,Ornn
+KXA100MS,A100 Monthly,Financials,one_off,Ornn
+KXA100Q,A100 Quarterly Directional Price,Science and Technology,custom,Ornn
+KXA100W,A100 Weekly Price,Science and Technology,weekly,Ornn
+KXA100WS,A100 Weekly,Financials,one_off,Ornn
+KXANTHTOKEND,Anthropic token price,Financials,one_off,Ornn Dashboard - Tokens
+KXANTHTOKENM,Anthropic Token Price,Financials,one_off,Ornn Dashboard - Tokens
+KXB100MS,B100 Monthly,Financials,one_off,Ornn
+KXB200AVGTEST,B200 Monthly Average,Financials,monthly,Ornn
+KXB200MAX,B100 Yearly Directional Price,Science and Technology,annual,Ornn
+KXB200MON,B200 Monthly Price,Science and Technology,monthly,Ornn
+KXB200MS,B200 Monthly,Financials,monthly,Ornn
+KXB200Q,B200 Quarterly Directional Price,Science and Technology,custom,Ornn
+KXB200TEST,B200 Weekly,Science and Technology,one_off,Ornn
+KXB200W,B200 Weekly Price,Science and Technology,weekly,Ornn
+KXB200WS,B200 Weekly,Financials,weekly,Ornn
+KXCHINAAGPURCHASE,Will China announce additional U.S. agricultural purchases in Sep 2026?,Politics,one_off,Semafor
+KXCMECOMPUTE,Will the CME offer compute futures before 2027?,Science and Technology,one_off,Science
+KXDDR5EMS,Monthly DDR5 16Gb (2Gx8) eTT,Financials,monthly,Ornn
+KXDDR5EWS,DDR5 16Gb (2Gx8) eTT,Financials,weekly,Ornn
+KXDDR5MS,Monthly DDR5 16Gb (2Gx8) 4800/5600,Financials,monthly,Ornn
+KXDDR5WS,Weekly DDR5 16Gb (2Gx8) 4800/5600,Financials,weekly,Ornn
+KXDEEPTOKEND,DeepSeek Token Price,Science and Technology,one_off,Ornn Dashboard - Tokens
+KXDEEPTOKENM,DeepSeek Token Price,Science and Technology,one_off,Ornn Dashboard - Tokens
+KXDRAMAY,DDR5 16Gb (2Gx8) 4800/5600 Annual,Financials,one_off,TrendForce
+KXDRAMWS,DRAM Weekly,Financials,one_off,Pyth
+KXFLOP,Flop compute,Science and Technology,custom,Our World in Data
+KXGBT55OY,GPT 5.5 Input Token,Commodities,annual, San Francisco Unified School District
+KXGEMINI35OY,Gemini 3.5 Flash Output Token,Commodities,annual, San Francisco Unified School District
+KXGOOGTOKEND,Google Token Price,Science and Technology,one_off,Ornn Dashboard - Tokens
+KXGOOGTOKENM,Google Token Price,Science and Technology,one_off,Ornn Dashboard - Tokens
+KXGPT55Y,GPT 5.5 Input Token,Commodities,annual,OpenAI
+KXGPURULE,GPU export restrictions,Politics,custom,ABC
+KXGPUSDW,Will GBPUSD end the week above 1.3625?,Financials,weekly,ICE
+KXH100MAX,H100 Yearly Directional Price,Science and Technology,annual,Ornn
+KXH100MON,H100 Monthly Price,Science and Technology,monthly,Ornn
+KXH100MS,H100 Monthly,Financials,one_off,Ornn
+KXH100Q,H100 Quarterly Directional Price,Science and Technology,custom,Ornn
+KXH100W,H100 Weekly Price,Science and Technology,weekly,Ornn
+KXH100WS,H100 Weekly,Financials,one_off,Ornn
+KXH200CHINA,Nvidia H200 chips delivered to China before 2027?,Economics,custom,Semafor
+KXH200MAX,H200 Yearly Directional Price,Science and Technology,annual,Ornn
+KXH200MON,H200 Monthly Price,Science and Technology,monthly,Ornn
+KXH200MS,H200 Monthly,Financials,one_off,Ornn
+KXH200Q,H200 Quarterly Directional Price,Science and Technology,custom,Ornn
+KXH200W,H200 Weekly Price,Science and Technology,weekly,Ornn
+KXH200WS,Weekly H200,Financials,weekly,Ornn
+KXOPENTOKEND,OpenAI Token Price ,Science and Technology,one_off,Ornn Dashboard - Tokens
+KXOPENTOKENM,OpenAI token price,Science and Technology,one_off,Ornn Dashboard - Tokens
+KXOPUS48M,Opus 4.8 Input Token,Commodities,one_off,Anthropic
+KXOPUS48OY,Opus 4.8 Output Token,Commodities,annual, San Francisco Unified School District
+KXOPUS48Y,Opus 4.8 Input Token,Commodities,annual,Anthropic
+KXRTX5090MAX,RTX5090 Yearly Directional Price,Science and Technology,annual,Ornn
+KXRTX5090MON,RTX 5059 Monthly Price,Science and Technology,one_off,Ornn
+KXRTX5090MS,RTX 5090 Monthly,Financials,monthly,Ornn
+KXRTX5090Q,RTX5090 Quarterly Directional Price,Science and Technology,custom,Ornn
+KXRTX5090W,RTX 5090 Weekly Price,Science and Technology,weekly,Ornn
+KXRTX5090WS,RTX 5090 Weekly,Financials,weekly,Ornn
+KXRTXPRO6000MON,RTX PRO 6000 Monthly Price,Science and Technology,one_off,Ornn
+KXRTXPRO6000W,RTX PRO 6000 Weekly Price,Science and Technology,weekly,Ornn
+KXTESTB200,Weekly B200 Compute Price,Financials,weekly,Ornn
+KXTESTINGGG,I,Science and Technology,one_off,Ornn
