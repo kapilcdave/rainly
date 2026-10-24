@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, BackgroundTasks
 from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from pymongo.errors import DuplicateKeyError
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -326,7 +327,9 @@ async def simulate_position(pid: str, body: SimulateIn, user: dict = Depends(cur
 
 @api.post("/positions/{pid}/celebrated")
 async def mark_celebrated(pid: str, user: dict = Depends(current_user)):
-    await db.positions.update_one({"id": pid, "user_id": user["user_id"]}, {"$set": {"celebrated": True}})
+    r = await db.positions.update_one({"id": pid, "user_id": user["user_id"]}, {"$set": {"celebrated": True}})
+    if not r.matched_count:
+        raise HTTPException(404, "Not found")
     return {"ok": True}
 
 
@@ -352,6 +355,9 @@ async def delete_position(pid: str, user: dict = Depends(current_user)):
     if p["mode"] != "paper":
         raise HTTPException(400, "Real Kalshi positions can't be removed here")
     await db.positions.delete_one({"id": pid})
+    if p.get("plan_id"):
+        await db.plans.update_one({"id": p["plan_id"], "legs.position_id": pid},
+                                  {"$set": {"legs.$.status": "removed"}, "$inc": {"spent": -p["cost"]}})
     return {"ok": True}
 
 
@@ -385,6 +391,8 @@ class WatchIn(BaseModel):
 
 @api.post("/watches")
 async def create_watch(body: WatchIn, user: dict = Depends(current_user)):
+    if body.business_id:
+        await get_biz(body.business_id, user)
     try:
         m = await kalshi.market_detail(body.ticker, fresh=True)
     except httpx.HTTPStatusError:
@@ -486,21 +494,24 @@ async def plan_preview(body: PlanIn, user: dict = Depends(current_user)):
         m = await services.pick_market(leg)
         contracts = max(1, round(leg["loss_if_event"] * body.coverage))
         if m and contracts * m["yes_ask"] > per_leg:
-            contracts = max(1, int(per_leg / m["yes_ask"]))
+            contracts = int(per_leg / m["yes_ask"])
         leg["contracts"] = contracts
-        if m:
+        if m and contracts >= 1:
             leg.update({"available": True, "price": m["yes_ask"], "outcome": m["outcome"],
                         "est_cost": round(contracts * m["yes_ask"], 2)})
             est += leg["est_cost"]
         else:
             leg["available"] = False
-    return {"legs": legs, "now_cost": round(min(est, body.budget), 2),
-            "max_payout": sum(l["contracts"] for l in legs), "later": sum(1 for l in legs if not l["available"])}
+    now_legs = [l for l in legs if l["available"]]
+    return {"legs": legs, "now_cost": round(est, 2), "now_count": len(now_legs),
+            "max_payout": sum(l["contracts"] for l in now_legs), "later": len(legs) - len(now_legs)}
 
 
 @api.post("/plans")
 async def create_plan(body: PlanIn, user: dict = Depends(current_user)):
     biz = await get_biz(body.business_id, user)
+    if await db.plans.find_one({"user_id": user["user_id"], "business_id": biz["id"], "status": "active"}):
+        raise HTTPException(409, "This business already has an active season plan. Cancel it first to avoid double-hedging.")
     if body.mode == "kalshi":
         await user_client(user)
     legs = services.build_legs(biz, body.weekends, body.risks)
@@ -542,7 +553,10 @@ async def cron_tick(request: Request, background: BackgroundTasks):
     run_id = request.headers.get("X-Webhook-Id") or (body or {}).get("run_id") or nid()
     if await db.cron_runs.find_one({"run_id": run_id}):
         return {"ok": True, "duplicate": True}
-    await db.cron_runs.insert_one({"run_id": run_id, "at": now().isoformat()})
+    try:
+        await db.cron_runs.insert_one({"run_id": run_id, "at": now().isoformat()})
+    except DuplicateKeyError:
+        return {"ok": True, "duplicate": True}
     background.add_task(services.tick)
     return {"ok": True}
 
@@ -556,6 +570,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+
+@app.on_event("startup")
+async def ensure_indexes():
+    await db.cron_runs.create_index("run_id", unique=True)
 
 
 @app.on_event("shutdown")

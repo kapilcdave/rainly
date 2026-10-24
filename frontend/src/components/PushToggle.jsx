@@ -4,6 +4,7 @@ import { BellRing, BellOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, errMsg } from "@/lib/api";
 import { currentSubscription, enablePush, disablePush, needsInstallFirst } from "@/lib/push";
+import { GetAppButton } from "@/components/GetApp";
 
 export const PushToggle = () => {
   const [on, setOn] = useState(false);
@@ -33,7 +34,9 @@ export const PushToggle = () => {
           {needsInstallFirst() ? "On iPhone, add RainCheck to your Home Screen first, then turn alerts on from the app." : "When a hedge gets cheaper, the forecast shifts, or a hedge pays out."}
         </div>
       </div>
-      {on ? (
+      {needsInstallFirst() ? (
+        <GetAppButton testid="push-install-first-button" label="Install app" />
+      ) : on ? (
         <Button variant="outline" className="rounded-full" onClick={turnOff} disabled={busy} data-testid="push-disable-button">Turn off</Button>
       ) : (
         <Button className="rounded-full bg-[#0F4C81] hover:bg-[#0A3860]" onClick={turnOn} disabled={busy} data-testid="push-enable-button">

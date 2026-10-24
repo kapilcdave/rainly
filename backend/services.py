@@ -101,12 +101,12 @@ async def place_position(user_id, ticker, side, contracts, mode, business_id=Non
 async def settle(p, result, simulated=False):
     won = result == p["side"]
     payout = p["max_payout"] if won else 0.0
-    await db.positions.update_one(
-        {"id": p["id"]},
+    r = await db.positions.update_one(
+        {"id": p["id"], "status": "open"},
         {"$set": {"status": "settled", "result": result, "won": won, "payout": payout, "simulated": simulated,
                   "pnl": round(payout - p["cost"], 2), "settled_at": now().isoformat(), "celebrated": not won}},
     )
-    if won:
+    if won and r.modified_count:
         covered = f", covering {min(100, round(payout / p['loss_if_event'] * 100))}% of the loss" if p.get("loss_if_event") else ""
         await create_alert(p["user_id"], "payout", f"Your hedge paid ${payout:,.0f}",
                            f"{p['headline']}{covered}.", "/dashboard")
@@ -202,6 +202,7 @@ async def check_watches(user_id=None):
             await create_alert(w["user_id"], "cheaper", "Your hedge just got cheaper",
                                f"{name}: now {round(price * 100)}¢, down from {round(w['baseline_price'] * 100)}¢.", "/markets")
             upd["baseline_price"] = price
+            upd["target_price"] = None
             fired += 1
         if prob is not None and w.get("baseline_prob") is not None and abs(prob - w["baseline_prob"]) >= 0.10:
             arrow = "up" if prob > w["baseline_prob"] else "down"

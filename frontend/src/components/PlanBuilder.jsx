@@ -17,9 +17,9 @@ const Preview = ({ p }) => (
   <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2" data-testid="plan-preview">
     <div className="grid grid-cols-2 gap-3">
       <div><div className="text-xs text-slate-500">Spent today (max)</div><div className="font-num text-xl font-semibold" data-testid="plan-now-cost">{usd(p.now_cost, 2)}</div></div>
-      <div><div className="text-xs text-slate-500">Most it could pay</div><div className="font-num text-xl font-semibold text-emerald-600">{usd(p.max_payout)}</div></div>
+      <div><div className="text-xs text-slate-500">Today's hedges could pay</div><div className="font-num text-xl font-semibold text-emerald-600">{usd(p.max_payout)}</div></div>
     </div>
-    <p className="text-xs text-slate-600">{p.legs.length - p.later} hedges can be placed now. {p.later} more get placed automatically when Kalshi opens those days' markets (usually 1–2 days ahead), always within your budget.</p>
+    <p className="text-xs text-slate-600">{p.now_count} hedges can be placed now. {p.later} more get placed automatically when Kalshi opens those days' markets (usually 1–2 days ahead), always within your budget.</p>
   </div>
 );
 

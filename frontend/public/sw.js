@@ -35,9 +35,9 @@ self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const target = new URL(e.notification.data?.url || "/alerts", self.location.origin).href;
   e.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
       const w = ws.find((x) => x.url.startsWith(self.location.origin));
-      return w ? w.focus().then(() => w.navigate(target)) : clients.openWindow(target);
+      return w ? w.focus().then(() => w.navigate(target)) : self.clients.openWindow(target);
     })
   );
 });

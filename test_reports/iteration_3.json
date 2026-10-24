@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 3 tested Rain Alerts/watches, push endpoints, season plans, cron tick, payout celebration/simulate, Kalshi sync, the 5-tab mobile bar, and the landing research/pricing sections. Backend: 51/51 pytest pass when run serially with -n 0 (21 new tests in test_raincheck_iter3_features.py plus 30 regression tests). Checked: watch CRUD, 404/422 validation, and price-drop logic using baselines edited in Mongo (no change and small drop -> no alert; >=20% drop -> 'cheaper' alert fires once and the baseline resets; target hit -> fires; odds shift of 10+ points -> 'forecast' alert). Also: alerts read -> unread 0; push public-key, subscribe/unsubscribe and test (400 with no subs, 200 with a fake sub); plan preview, create and cancel, including budget and per-leg caps, legs matched to positions, 422/404 validation, and 400 in kalshi mode without creds; cron 200 returned in under 5s, 401 for a bad or missing token, duplicate:true for a repeated X-Webhook-Id; simulate hit/miss, 400 on a second simulate and on kalshi positions, 404 cross-user, celebrated flag, payout alert; kalshi/sync -> {synced:0}. Frontend (desktop 1920 and iPhone 390x844): all requested flows passed. The unread badge clears on /alerts; check-now shows a toast; the watch button creates a watch that appears under Watching and can be removed; the builder opens from both the report and /plans, the preview updates with weekends/budget, the kalshi chip shows a toast without creds, approve is disabled with no risks, approve creates a plan card, and cancel works; simulate-hit shows the celebration ($50, confetti canvas) and it doesn't show again after reload; simulate-miss shows 'Expired (sim)'; the sync button is hidden with no Kalshi positions; 5 tabs and Add a business are visible on mobile; PushToggle shows on /alerts and /settings; research has 3 sourced links and pricing renders. No blocking bugs. There are some logic and UX issues listed below.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/plans/preview", "issue": "'Most it could pay' (max_payout) overstates coverage. Legs that aren't available yet use uncapped contracts (loss_if_event*coverage) and ignore the per-leg budget. Example: a $20 budget with 4 weekends showed $4,512, while run_plan would place only about 250 contracts per leg. Also, when per_leg < price, the preview forces contracts=max(1,...), and now_cost=min(est,budget) hides the overspend. run_plan would mark those legs over_budget instead, so preview and execution disagree."},
+      {"endpoint": "services.check_watches", "issue": "Alert spam once the target is reached. After price <= target_price, every later 1c drop fires another 'cheaper' alert, because the baseline resets but the target stays. This happened in the live data: '26c down from 35c', then '24c down from 26c' from a cron tick. Suggest clearing target_price after the first target alert, or requiring the 20% rule after that."},
+      {"endpoint": "POST /api/plans", "issue": "There is no dedupe across plans. Two active plans for the same business both bought the same Cool Sat Oct 24 / Sun Oct 25 legs, so the user double-hedges. Consider warning about or blocking an overlapping active plan."},
+      {"endpoint": "DELETE /api/positions/{id}", "issue": "Deleting a paper position placed by a plan leaves the plan leg as 'Placed' with a dangling position_id and doesn't reduce plan.spent."},
+      {"endpoint": "POST /api/cron/tick", "issue": "Dedupe is find_one then insert, with no unique index on cron_runs.run_id, so concurrent retries can race. Add a unique index and catch DuplicateKeyError."},
+      {"endpoint": "services.settle", "issue": "The update isn't conditioned on status='open'. A concurrent simulate and refresh_positions could settle twice and create duplicate payout alerts and pushes. Use update_one({id, status:'open'}) and check modified_count."},
+      {"endpoint": "POST /api/positions/{id}/celebrated, POST /api/watches", "issue": "celebrated returns ok for unknown ids (no 404). The business_id on a watch isn't checked for ownership."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Landing pricing-section", "issues": ["The 2 pricing cards sit in a 3-column grid and leave the right third empty on desktop. The cards also have no CTA buttons."]},
+      {"screen": "Dashboard hedge rows (desktop)", "issues": ["The StatusPill 'Paid $700 (sim)' wraps onto 2 lines inside md:w-24."]},
+      {"screen": "PushToggle on iPhone Safari (not installed)", "issues": ["The text says to add RainCheck to the Home Screen first, but 'Turn on alerts' is still an enabled primary button. Consider hiding it or swapping in an install CTA."]},
+      {"screen": "Toasts", "issues": ["The top-right toast briefly renders under the sticky header (header z-50). This carries over from iteration 2."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_raincheck_iter3_features.py", "/app/backend/tests/test_raincheck_api.py", "/app/backend/tests/test_raincheck_pwa_regression.py", "/app/test_reports/pytest/pytest_results_iter3.xml"],
+  "action_items": [
+    "Cap preview contracts for unavailable legs by per_leg/est price (or show the payout range only for available legs), and make the preview match run_plan's over_budget behaviour",
+    "Stop repeat 'cheaper' alerts after target_price is reached (clear the target or require the 20% rule after the first fire)",
+    "Optional: dedupe or warn on overlapping active plans; reconcile the plan leg when a plan position is deleted",
+    "Optional: make settle() idempotent (filter on status open); add a unique index on cron_runs.run_id",
+    "Optional polish: pricing grid layout, wrapping of the Paid pill, PushToggle state on iOS when not installed"
+  ],
+  "critical_code_review_comments": [
+    "plan_preview returns max_payout = sum of contracts across all legs, ignoring budget for legs not yet listed, which misleads the user",
+    "check_watches: the target_price condition re-fires on every small drop once below target",
+    "settle() has no status guard (race leads to double payout alert/push)",
+    "cron_runs dedupe has no unique index",
+    "refresh_positions makes one Kalshi call per open position on every GET /positions and /dashboard, which will get slow as positions grow"
+  ],
+  "updated_files": ["/app/backend/tests/test_raincheck_iter3_features.py"],
+  "success_rate": {"backend": "100% (51/51)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "Test data was cleaned up: my UI-created plan (cancelled) and its 2 positions, TEST_celebrate positions and their payout alert, TEST_ watches/alerts/push subs for test-user-2, and TEST_ cron run ids. test-user-1 still has its original active plan ba0a412c08f8 and watch b56a953ce623.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with -n 0. pytest.ini enables xdist with loadscope, and the iter3 tests share test-user-2 state (watches/alerts), so parallel runs cause false failures. The iter3 tests edit Mongo directly (pymongo using MONGO_URL/DB_NAME from backend/.env) to force price-drop and forecast alerts for test-user-2. Calling cron/tick runs check_watches/run_plans for all users and can create real alerts for test-user-1. Never log out with test_session_raincheck."
+}

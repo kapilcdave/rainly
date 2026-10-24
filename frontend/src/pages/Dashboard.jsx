@@ -49,7 +49,7 @@ export const PositionRow = ({ p, onDelete, onSimulate }) => (
     <ModeBadge mode={p.mode} environment={p.environment} />
     <div className="md:text-right md:w-28"><div className="text-xs text-slate-500">Spent</div><div className="font-num">{usd(p.cost, 2)}</div></div>
     <div className="md:text-right md:w-28"><div className="text-xs text-slate-500">Max payout</div><div className="font-num text-emerald-700">{usd(p.max_payout)}</div></div>
-    <div className="md:w-24 ml-auto md:ml-0 text-right"><StatusPill p={p} /></div>
+    <div className="md:w-32 ml-auto md:ml-0 text-right whitespace-nowrap"><StatusPill p={p} /></div>
     {onSimulate && p.mode === "paper" && p.status === "open" && <SimulateMenu p={p} onSimulate={onSimulate} />}
     {onDelete && p.mode === "paper" && (
       <Button variant="ghost" size="sm" onClick={() => onDelete(p.id)} data-testid={`delete-position-${p.id}`}><Trash2 size={15} /></Button>

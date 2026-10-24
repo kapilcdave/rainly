@@ -7,8 +7,8 @@ import { api, errMsg, usd, cents } from "@/lib/api";
 import { WeatherIcon, ModeBadge } from "@/components/WeatherIcon";
 import PlanBuilder from "@/components/PlanBuilder";
 
-const LEG_STYLE = { placed: "text-emerald-700", scheduled: "text-slate-500", missed: "text-slate-400 line-through", over_budget: "text-amber-700" };
-const LEG_LABEL = { placed: "Placed", scheduled: "On autopilot", missed: "Market closed", over_budget: "Over budget" };
+const LEG_STYLE = { placed: "text-emerald-700", scheduled: "text-slate-500", missed: "text-slate-400 line-through", over_budget: "text-amber-700", removed: "text-slate-400 line-through" };
+const LEG_LABEL = { placed: "Placed", scheduled: "On autopilot", missed: "Market closed", over_budget: "Over budget", removed: "Removed" };
 
 const PlanCard = ({ p, onCancel }) => {
   const placed = p.legs.filter((l) => l.status === "placed").length;
@@ -29,7 +29,7 @@ const PlanCard = ({ p, onCancel }) => {
           <div key={l.key} className="flex items-center gap-2 py-1.5 text-sm" data-testid={`plan-leg-${l.key}`}>
             <WeatherIcon kind={l.kind} size={12} boxed={false} />
             <span className="flex-1">{l.label}{l.outcome ? <span className="text-slate-500"> · {l.outcome}</span> : null}</span>
-            <span className={`text-xs ${LEG_STYLE[l.status]}`}>{LEG_LABEL[l.status]}{l.price ? ` ${cents(l.price)}` : ""}</span>
+            <span className={`text-xs ${LEG_STYLE[l.status]}`}>{LEG_LABEL[l.status]}{l.price && l.status === "placed" ? ` ${cents(l.price)}` : ""}</span>
           </div>
         ))}
       </div>

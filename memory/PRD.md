@@ -15,8 +15,8 @@ Follow-up: it should be a phone app. The website is mainly for getting the app â
 - Settings: connect, verify and remove Kalshi keys (Demo by default)
 - Dashboard: protected revenue, spent, payouts, net; positions auto-settle from Kalshi results
 - PWA: Get-the-app page (iOS steps, Android prompt, desktop QR), standalone welcome screen, bottom tab bar, bottom-sheet hedges
+- Iteration 3: watches and alerts (price drop, odds shift, payout) with Web Push (VAPID, pywebpush); season plans (weekend legs plus monthly rain, split per-leg budget, autopilot via Emergent cron `/api/cron/tick` every 15 min); Kalshi order sync; payout celebration with confetti; simulate result for paper hedges; landing research and pricing; README for the GitHub repo "rainly"
 
 ## Backlog
-- P1: forecast or price alerts (push), season-long hedge plans, syncing order fills and cancels from Kalshi
 - P2: sales-history upload, non-weather risks, multiple locations, Polymarket, season reports
 - Note: real Kalshi orders are untested (no keys). Google login inside the iOS home-screen app should be checked on a real iPhone.

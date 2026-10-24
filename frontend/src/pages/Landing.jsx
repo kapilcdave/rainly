@@ -102,6 +102,7 @@ const Pricing = () => (
           <div className="font-medium text-slate-600">{name}</div>
           <div className="font-num text-3xl font-semibold mt-1">{price}</div>
           <ul className="mt-5 space-y-2 text-sm text-slate-700">{feats.map((f) => <li key={f} className="flex gap-2"><ShieldCheck size={16} className="text-teal-600 shrink-0 mt-0.5" />{f}</li>)}</ul>
+          <div className="mt-6"><GetAppButton testid={`pricing-cta-${name.toLowerCase()}`} label={i ? "Start Pro" : "Get started free"} /></div>
         </div>
       ))}
     </div>
