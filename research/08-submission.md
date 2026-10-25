@@ -32,13 +32,13 @@ Live app: https://rainy-refunds.preview.emergentagent.com. All numbers below wer
 
 1. **Landing page.** The live ticker shows the weekend: Chicago 2%, NYC 1%, Miami 99%, Seattle 93%, Austin 3%. Click **Get started**.
 2. **Merchant picker.** Click **Maria's Patio Taqueria** (Chicago).
-3. **Dashboard.** Click **Checkout widget**.
+3. **Dashboard.** Click **Open checkout**.
 4. **Checkout.** Pick **Tomorrow Oct 25**: Chicago is 1% and the book is deep, so the refund is $1.00 on a $45 booking. (The weekend tab works too, at 2% for $1.15, but it shows a thin-book warning.) Turn on the toggle. The official trigger text names station CLIORD. Type an email, then **Confirm with rain refund**. The "You're covered" screen shows "Bought 45 YES @ 1¢ … Mock fill at live ask."
 5. **View dashboard.** It shows 41+ guarantees, 1,845+ contracts held, about $137 hedge cost and about $164 in fees. **The If-it-rains and If-it-doesn't cards show the same number (+$27.28).** That's the point: Maria earns the margin either way.
 6. **Replay.** Tap the **Oct 13** chip. Rain chance at listing was 38%, so the refund was priced at $21.41. It settled YES with 0.11", 40 refunds = $1,800, the hedge paid +$1,800, and Maria nets **+$142.80**. Optional: the "Stayed dry" tab with **Sep 27** (14%, nets +$53.60).
 7. Optional, 3 seconds: Bayfront Boat Tours (Miami, 99%) shows the refund as **unavailable**. Above 60% we don't sell it.
 
-⚠ The replay opens on **Oct 16** by default. That day listed at 74%, so the screen says "Hypothetical, above the 60% cap." Tap Oct 13 before you narrate, or have Emergent fix the default (prompt below).
+The replay now opens on Oct 13 by default (fixed in round 1).
 
 ## Script (about 270 words, aim for 1:50)
 
@@ -62,14 +62,18 @@ Live app: https://rainy-refunds.preview.emergentagent.com. All numbers below wer
 **[1:30–1:50] Why this wins**
 > "Over a million people have already bought rain guarantees, but on insurance built for big travel platforms. Kalshi's daily rain markets let us sell a one-dollar refund for one Saturday, hedged exactly, to any patio, food truck or boat tour. Rain shouldn't cost you customers."
 
-## Fixes to ask Emergent for (paste as one prompt)
+## Polish prompt for Emergent (round 2: cut, don't add)
+
+The round 1 fixes are done (Rainly name, Diddy's Den removed, replay opens on Oct 13, same-profit banner). Round 2:
 
 ```
-Small polish before I record the demo, don't change anything else:
-1. Rename the app back to "Rainly" everywhere (front page, app name, emails, replay note, PRD).
-2. Delete the test merchant "Diddy's Den" (Albuquerque) from the database so the merchant picker only shows Maria's Patio Taqueria and Bayfront Boat Tours.
-3. Settlement replay: when the "It rained (YES)" tab opens, select the most recent date where would_offer is true (for Chicago that's Oct 13), not the most recent YES date. Do the same for the "Stayed dry (NO)" tab.
-4. On the merchant dashboard, if the If-it-rains and If-it-doesn't nets are equal, show one line above the two cards: "Same profit rain or shine: +$X".
+No new features. Polish only, so the core flow makes sense in a 2-minute demo:
+1. Set MOCK_TRADING=true. Kalshi demo rain books are empty, so every hedge sits "resting" and never fills, while the dashboard still counts those contracts and says "profit rain or shine". That claim is false unless the hedge fills. Simulated fills at the live production ask, labelled "Simulated at live Kalshi price", are honest and consistent. Keep the demo-order code, just switch it off.
+2. Dashboard action list: show only "Open checkout" and "Settlement replay". Hide "Share checkout link", "Weekly earnings", "Add a location" and "All locations" (keep the code, remove the rows).
+3. Checkout success screen: remove the "Check my coverage" button. Keep "New booking" and "View dashboard". The hedge line should read "Hedged: 45 contracts @ 1¢ on Kalshi (simulated at live price)".
+4. Checkout dates: show only dates whose market is open now (today, tomorrow, this weekend). Hide "Opens Monday" weekends from the chips; the 60% "not offered" state stays.
+5. Turn off the morning reminder emails. Keep the booking confirmation and refund emails.
+Don't touch pricing, the replay, the landing ticker or the visual design.
 ```
 
 ## Before recording
