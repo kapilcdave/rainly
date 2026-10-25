@@ -11,8 +11,8 @@ from fastapi.responses import Response
 from core import MAX_P, TICKER_CITIES, BUSINESS_TYPES
 from services import kalshi_ws
 from services.kalshi import (build_quote, check_kind, date_options, entry_price, event_ticker, f, find_market,
-                             get_event_markets, history_24h, kget, parse_code, parse_day, price_quote,
-                             settled_markets, today_et, trading_mode, weekend_saturday)
+                             get_event_markets, history_24h, kget, long_day, parse_code, parse_day, price_quote,
+                             settled_markets, today_et, trading_mode, weekend_saturday, wk_label)
 
 router = APIRouter()
 
@@ -45,8 +45,12 @@ async def cities():
 
 @router.get("/ticker")
 async def ticker():
-    sat = weekend_saturday(today_et())
-    markets = await get_event_markets("weekend", sat)
+    """Today's daily rain market (a new one lists every day); falls back to the weekend market."""
+    d, kind = today_et(), "daily"
+    markets = await get_event_markets(kind, d)
+    if not markets:
+        d, kind = weekend_saturday(today_et()), "weekend"
+        markets = await get_event_markets(kind, d)
     out = []
     for c in TICKER_CITIES:
         m = find_market(markets or [], c)
@@ -60,7 +64,9 @@ async def ticker():
                     "history": await history_24h(m) if m else [],
                     "last": f(m.get("last_price_dollars")) if m else None,
                     "ticker": m.get("ticker") if m else None, "status": m.get("status") if m else None})
-    return {"event_ticker": event_ticker("weekend", sat), "weekend_of": sat.isoformat(), "listed": markets is not None, "cities": out}
+    label = long_day(d) if kind == "daily" else wk_label(d)
+    return {"event_ticker": event_ticker(kind, d), "kind": kind, "date": d.isoformat(), "label": label,
+            "listed": markets is not None, "cities": out}
 
 
 @router.get("/quote")

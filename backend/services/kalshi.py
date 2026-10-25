@@ -91,6 +91,13 @@ def check_kind(kind: str):
         raise HTTPException(400, "kind must be 'weekend' or 'daily'")
 
 
+def long_day(d: date) -> str:
+    """e.g. 'Sunday, October 25th'"""
+    n = d.day
+    suffix = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{d.strftime('%A, %B')} {n}{suffix}"
+
+
 def date_options() -> list[dict]:
     t = today_et()
     sat = weekend_saturday(t)
@@ -99,8 +106,8 @@ def date_options() -> list[dict]:
     return [
         {"kind": "weekend", "date": sat.isoformat(), "label": wk_label(sat)},
         {"kind": "weekend", "date": nxt.isoformat(), "label": wk_label(nxt)},
-        {"kind": "daily", "date": t.isoformat(), "label": f"Today {t.strftime('%b %-d')}"},
-        {"kind": "daily", "date": tom.isoformat(), "label": f"Tomorrow {tom.strftime('%b %-d')}"},
+        {"kind": "daily", "date": t.isoformat(), "label": f"Today · {long_day(t)}"},
+        {"kind": "daily", "date": tom.isoformat(), "label": f"Tomorrow · {long_day(tom)}"},
     ]
 
 

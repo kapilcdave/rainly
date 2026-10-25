@@ -6,7 +6,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { api } from "@/src/api";
 import { makeStyles, useTheme } from "@/src/theme";
-import { fonts, niceDate, pct } from "@/src/format";
+import { fonts, pct } from "@/src/format";
 import { Logo } from "@/src/components/Logo";
 import { Btn } from "@/src/components/Btn";
 import { PitchFooter } from "@/src/components/Footer";
@@ -18,7 +18,7 @@ const STEPS = [
   ["Rain? Refunds go out.", "Same official station data, automatically."],
 ];
 
-type Ticker = { weekend_of: string; listed: boolean; cities: { city: string; p: number | null; change: number | null; history: number[] }[] };
+type Ticker = { date: string; label: string; listed: boolean; cities: { city: string; p: number | null; change: number | null; history: number[] }[] };
 
 export default function Landing() {
   const styles = useStyles();
@@ -45,7 +45,7 @@ export default function Landing() {
 
         <View style={[styles.pad, styles.sectionHead]}>
           <Text style={styles.label}>
-            Rain odds{ticker.data ? ` · ${niceDate(ticker.data.weekend_of)}` : ""}
+            Rain odds{ticker.data ? ` · ${ticker.data.label}` : ""}
           </Text>
           <View style={styles.live}>
             <View style={styles.dot} />
