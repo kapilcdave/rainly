@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 6: Weekly earnings report API + screen, QR as_json, Kalshi demo order-status sync, printable table card, reminder logic (code review only), and a regression check. Backend 13/13 pytest passed: report totals sold=41, net=27.28, 8 weeks, weeks clamp 0/-5 -> 1 and 99 -> 26, 404 for bad and invalid ids, 422 for non-int; qr as_json returns a valid PNG base64 and plain qr is still image/png; a TEST kalshi_demo resting order with id 01a170dc... synced to 'canceled' on dashboard GET and was then deleted by _id. Maria stays at 41 guarantees / 41 orders. Frontend at 375px: dashboard Weekly earnings row opens /report with +$27.28, '41 rain refunds sold · $164.08 in fees', 8 bars (Oct 19 bar 120px blue, empty weeks 2px grey after the FadeInUp settles), 8 week rows and the tip. No horizontal overflow. Share: Print table card calls window.print and shows no share-status error, BUT on web expo-print ignores the html option and prints the current app page, not the tent card. Regression OK: landing, checkout (quote shown, confirm not clicked, no API POSTs), replay. No deprecated expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "send_reminders (server.py:491-495)", "issue": "On Mon-Fri, weekend_saturday(today) returns the coming Saturday. So a weekend guarantee created before today gets its 'this weekend' morning reminder on whatever weekday the loop first runs after 7am ET (e.g. Wednesday), not on Saturday morning. The 'morning-of' intent needs today.weekday() in (5,6) for the weekend branch."},
+      {"endpoint": "sync_demo_orders (server.py:453-454)", "issue": "Partially filled cancels are stored as 'canceled (x/y filled)', which is not in the $nin final list ['filled','canceled','expired']. These orders get re-polled on Kalshi forever (every dashboard load + every 5 min). Use a regex or store a separate final flag."},
+      {"endpoint": "send_reminders (server.py:497,515)", "issue": "The claim is atomic (find_one_and_update on reminder_email_status $exists:false -> 'sending'), so there are no duplicates. But a crash between the claim and the final update leaves 'sending' forever, and failures ('failed:...') are never retried. Acceptable, but worth noting."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Print table card (web)", "issue": "expo-print web build (ExponentPrint.web.js) just calls window.print(), and Print.js documents 'on web this prints the HTML from the page'. The tableCardHtml is ignored on web, so the browser prints the Share screen UI, not the A5 tent card. Fix: on Platform.OS==='web', inject the HTML into a hidden iframe (or window.open) and call iframe.contentWindow.print(). Reference: /app/frontend/app/merchant/[id]/share.tsx:65", "testID": "print-table-card-button", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Share", "issues": ["share-status always uses colors.successText (green), even for error strings like \"Couldn't open the print dialog\" (share.tsx:122). Use the error color for failures."]},
+      {"screen": "Report", "issues": ["Bar labels are 9px (report.tsx:107), below a comfortable readable size. Consider 11px or showing every other label.", "Weeks with 0 sales show '0 sold · fees $0.00 · hedge $0.00', which is noisy. Consider 'No rain refunds sold' instead."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter6_report_qr_sync.py", "/app/test_reports/pytest/pytest_iter6.xml"],
+  "action_items": [
+    "Web print: render tableCardHtml in a hidden iframe and call contentWindow.print() when Platform.OS==='web'. expo-print ignores html on web (share.tsx:65).",
+    "send_reminders: only send weekend-kind reminders when today is Saturday (or Sat/Sun), not on weekdays (server.py:495).",
+    "sync_demo_orders: exclude 'canceled (x/y filled)' statuses from re-polling (server.py:454).",
+    "Use the error color for failure messages in share-status (share.tsx:122)."
+  ],
+  "critical_code_review_comments": [
+    "Reminder created_at filter is correct: start_of_day is midnight ET converted to a UTC isoformat string, and created_at is also a UTC isoformat string, so the lexicographic $lt excludes same-day bookings.",
+    "revenue_report calls today_et() twice (server.py:694). There is a tiny midnight race; compute it once.",
+    "server.py is 919 lines (>700). Consider splitting the background jobs (settle/sync/reminders) and Kalshi client into modules."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter6_report_qr_sync.py"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "90% (report, dashboard row, share print button and regression work; web print outputs the wrong content)"},
+  "seed_data_creation": "One TEST order (note 'TEST_sync', guarantee_id 'TEST_sync_guarantee') was inserted for Maria and deleted by exact _id in the same test. Maria is verified at 41 guarantees / 41 orders afterwards.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Container clock is Oct 24-25 2026. Maria id 6add11451f0373a8576b5b40 (41 guarantees, 41 mock orders, all created the week of 2026-10-19). Report bars use FadeInUp, so wait about 1-2s before screenshots. To detect print on web, stub window.print via add_init_script. Do not confirm checkouts or send emails. test_iter6_report_qr_sync.py is safe to rerun (inserts and deletes its own order).",
+  "rca_of_issue": "Web print: expo-print 58 web implementation is `async print(){ window.print(); }` and ignores options.html, so printAsync({html}) prints the app DOM."
+}

@@ -156,6 +156,33 @@ def booking_confirmation_email(*, customer_name: str, merchant_name: str, city: 
     return subject, html
 
 
+def reminder_email(*, customer_name: str, merchant_name: str, city: str, date_label: str,
+                   amount: str, chance: str) -> tuple[str, str]:
+    """Morning-of reminder. Fixed server-side template, all interpolations escaped."""
+    subject = f"Today's rain chance for your {merchant_name} booking: {chance}"
+    e = escape
+    html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6">'
+        '<tr><td align="center" style="padding:24px">'
+        '<table role="presentation" width="100%" style="max-width:480px;background:#FFFFFF;border-radius:16px">'
+        '<tr><td style="padding:24px 24px 0;font-family:Arial,sans-serif;color:#2563EB;font-size:18px;'
+        'font-weight:bold">Rainly</td></tr>'
+        '<tr><td style="padding:16px 24px 24px;font-family:Arial,sans-serif;color:#111827">'
+        f'<p style="font-size:16px;margin:0 0 12px">Good morning {e(customer_name)},</p>'
+        f'<p style="font-size:16px;line-height:24px;margin:0 0 16px">Your {e(merchant_name)} booking is '
+        f'{e(date_label)}. Here&#39;s the latest chance of rain in {e(city)}:</p>'
+        f'<div style="font-size:44px;font-weight:bold;color:#111827">{e(chance)}</div>'
+        f'<p style="font-size:14px;line-height:22px;color:#4B5563;margin:16px 0 0">Either way you&#39;re covered: '
+        f'if the official station records rain, you get {e(amount)} back automatically.</p>'
+        '</td></tr>'
+        '<tr><td style="padding:16px 24px;border-top:1px solid #E5E7EB;font-family:Arial,sans-serif;'
+        'font-size:11px;line-height:16px;color:#6B7280">Sent by Rainly on behalf of '
+        f'{e(merchant_name)}. We never ask for your password or card details by email.</td></tr>'
+        '</table></td></tr></table>'
+    )
+    return subject, html
+
+
 def refund_email(*, customer_name: str, merchant_name: str, city: str, date_label: str,
                  amount: str, rules: str, ticker: str) -> tuple[str, str]:
     """Fixed server-side template. All interpolations are escaped."""

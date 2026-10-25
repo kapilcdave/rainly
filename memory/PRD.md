@@ -13,6 +13,10 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Frontend: Expo Router stack: `/`, `/merchants`, `/onboarding`, `/merchant/[id]`, `/merchant/[id]/checkout`, `/merchant/[id]/replay`. Fonts: Space Grotesk and Plus Jakarta Sans. Icons: Ionicons. The logo is drawn from Views (`src/components/Logo.tsx`), and the app icon, favicon and splash were regenerated in blue.
 
 ## Implemented (Oct 24 2026)
+- Live order status: resting/partial Kalshi demo orders are synced on dashboard load and every 5 minutes (GET /portfolio/orders/{id}), giving filled, partial, resting or canceled, with real fill price and fees.
+- Printable table card (expo-print, A5) from the share screen, with an embedded QR from /api/qr?as_json=true.
+- Weekly earnings report (/api/merchants/{id}/report, /merchant/[id]/report): last 8 weeks with bar chart and per-week rows.
+- Morning-of reminder email from 7am ET with the live rain chance, once per booking. Skipped for bookings made the same day.
 - Calmer redesign: landing is a plain white page with a small logo wordmark, a big ink headline, rain odds as a watchlist (city · sparkline · % · 24h change), and how-it-works as 3 text lines. Dashboard: big profit number, hairline split for if-rains/if-dry, settings-style action rows (checkout, share, replay), plain sections. Checkout lost its fake phone frame. Merchant picker is a hairline list.
 - Real Kalshi demo hedging ON (MOCK_TRADING=false, Ed25519 demo key). Uses Create Order V2 POST /portfolio/events/orders, side=bid, GTC limit at live ask + 3¢. Demo books are empty, so orders usually rest (status 'resting'). Rejections or network errors fall back to a simulated fill with a note.
 - Landing ticker: 24h change arrows plus a 24h sparkline per city. Share screen per merchant: QR code (/api/qr) plus app link (rainly:// scheme) and a Share button. Booking confirmation email sent at checkout when an email is given. Ed25519 and RSA Kalshi signing supported (demo key still pending).

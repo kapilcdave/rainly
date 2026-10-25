@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-from emailer import EMAIL_RE, booking_confirmation_email, refund_email, send_email  # noqa: E402  (needs env loaded)
+from emailer import EMAIL_RE, booking_confirmation_email, refund_email, reminder_email, send_email  # noqa: E402  (needs env loaded)
 import io  # noqa: E402
 import qrcode  # noqa: E402
 from fastapi.responses import Response  # noqa: E402
@@ -446,12 +446,86 @@ async def send_refund_alert(g: Guarantee, market: dict):
     await db.guarantees.update_one({"_id": ObjectId(g.id)}, {"$set": update})
 
 
+async def sync_demo_orders(merchant_id: Optional[str] = None):
+    """Pull the latest status of resting/partial Kalshi demo orders and update the order log."""
+    if not (KALSHI_ACCESS_KEY and KALSHI_PRIVATE_KEY_PEM):
+        return
+    q = {"mode": "kalshi_demo", "kalshi_order_id": {"$nin": [None, ""]},
+         "status": {"$not": {"$regex": "^(filled|canceled|expired)"}}}
+    if merchant_id:
+        q["merchant_id"] = merchant_id
+    async for doc in db.orders.find(q).limit(50):
+        path = f"/portfolio/orders/{doc['kalshi_order_id']}"
+        try:
+            r = await _http.get(KALSHI_DEMO + path, headers=_signed_headers("GET", "/trade-api/v2" + path))
+            if r.status_code != 200:
+                continue
+            o = r.json().get("order") or {}
+        except Exception as e:
+            logger.warning("order sync failed: %s", e)
+            continue
+        filled = f(o.get("fill_count_fp"))
+        total = f(o.get("initial_count_fp")) or doc["count"]
+        ks = o.get("status")
+        if ks == "executed" or filled >= total:
+            status = "filled"
+        elif ks == "canceled":
+            status = f"canceled ({filled:g}/{total:g} filled)" if filled else "canceled"
+        else:
+            status = f"partial {filled:g}/{total:g}" if filled else "resting"
+        upd = {"status": status, "filled": filled, "synced_at": now_iso()}
+        if filled:
+            upd["price"] = round((f(o.get("taker_fill_cost_dollars")) + f(o.get("maker_fill_cost_dollars"))) / filled, 4)
+            upd["fee"] = round(f(o.get("taker_fees_dollars")) + f(o.get("maker_fees_dollars")), 2)
+        if status.startswith("canceled"):
+            upd["note"] = "Canceled on Kalshi demo"
+        await db.orders.update_one({"_id": doc["_id"]}, {"$set": upd})
+
+
+async def send_reminders():
+    """Morning-of email with the day's rain chance, once per covered booking (from 7am ET)."""
+    now = datetime.now(ET)
+    if now.hour < 7:
+        return
+    today = now.date()
+    sat = weekend_saturday(today)
+    when = [{"kind": "daily", "date": today.isoformat()}]
+    if today.weekday() >= 5:  # weekend bookings get their reminder on Saturday/Sunday morning only
+        when.append({"kind": "weekend", "date": sat.isoformat()})
+    start_of_day = datetime.combine(today, datetime.min.time(), ET).astimezone(timezone.utc).isoformat()
+    q = {"status": "active", "customer_email": {"$nin": [None, ""]}, "reminder_email_status": {"$exists": False},
+         "created_at": {"$lt": start_of_day},  # booked today = they just got the confirmation email
+         "$or": when}
+    while True:
+        doc = await db.guarantees.find_one_and_update(q, {"$set": {"reminder_email_status": "sending"}})
+        if not doc:
+            break
+        g = Guarantee.from_mongo(doc)
+        mdoc = await db.merchants.find_one({"_id": ObjectId(g.merchant_id)})
+        m = Merchant.from_mongo(mdoc) if mdoc else None
+        data = await kget(f"/markets/{g.ticker}", ttl=120)
+        mk = (data or {}).get("market") or {}
+        chance = f(mk.get("yes_ask_dollars")) or f(mk.get("last_price_dollars"))
+        subject, html = reminder_email(
+            customer_name=g.customer_name or "there", merchant_name=m.name if m else "your",
+            city=m.city if m else "", date_label="today" if g.kind == "daily" else "this weekend",
+            amount=f"${g.booking_value:,.2f}", chance=f"{round(chance * 100)}%")
+        try:
+            await send_email(to=g.customer_email, subject=subject, html=html)
+            status = "sent"
+        except (RuntimeError, ValueError) as e:
+            status = f"failed:{e}"
+        await db.guarantees.update_one({"_id": ObjectId(g.id)}, {"$set": {"reminder_email_status": status, "reminder_email_at": now_iso()}})
+        await asyncio.sleep(0.6)
+
+
 async def settlement_loop():
     while True:
-        try:
-            await settle_guarantees(None)
-        except Exception as e:
-            logger.warning("settlement loop error: %s", e)
+        for job in (settle_guarantees, sync_demo_orders, send_reminders):
+            try:
+                await (job(None) if job is not send_reminders else job())
+            except Exception as e:
+                logger.warning("%s error: %s", job.__name__, e)
         await asyncio.sleep(300)
 
 
@@ -604,19 +678,55 @@ async def send_booking_confirmation(g: Guarantee, m: Merchant, rules: str):
 
 
 @api_router.get("/qr")
-async def qr_png(data: str):
+async def qr_png(data: str, as_json: bool = False):
     if not data or len(data) > 500:
         raise HTTPException(400, "data must be 1-500 characters")
     img = qrcode.make(data, box_size=10, border=2)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
+    if as_json:  # base64 for embedding in printable HTML
+        return {"png_base64": base64.b64encode(buf.getvalue()).decode()}
     return Response(content=buf.getvalue(), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@api_router.get("/merchants/{mid}/report")
+async def revenue_report(mid: str, weeks: int = 8):
+    """Weekly rain-refund earnings, bucketed by the Monday of the week each refund was sold."""
+    m = await merchant_or_404(mid)
+    weeks = max(1, min(weeks, 26))
+    this_monday = today_et() - timedelta(days=today_et().weekday())
+    buckets = {}
+    for i in range(weeks):
+        wk = this_monday - timedelta(weeks=i)
+        buckets[wk.isoformat()] = {"week_of": wk.isoformat(), "sold": 0, "fees": 0.0, "hedge_cost": 0.0,
+                                   "refunds": 0.0, "payout": 0.0}
+    async for doc in db.guarantees.find({"merchant_id": m.id}):
+        g = Guarantee.from_mongo(doc)
+        d = datetime.fromisoformat(g.created_at).astimezone(ET).date()
+        b = buckets.get((d - timedelta(days=d.weekday())).isoformat())
+        if not b:
+            continue
+        b["sold"] += 1
+        b["fees"] += g.price
+        b["hedge_cost"] += g.hedge_cost
+        if g.status == "refunded":
+            b["refunds"] += g.booking_value
+            b["payout"] += g.contracts
+    rows = []
+    for b in sorted(buckets.values(), key=lambda x: x["week_of"]):
+        b = {k: (round(v, 2) if isinstance(v, float) else v) for k, v in b.items()}
+        b["net"] = round(b["fees"] - b["hedge_cost"] - b["refunds"] + b["payout"], 2)
+        rows.append(b)
+    tot = {k: round(sum(r[k] for r in rows), 2) for k in ("sold", "fees", "hedge_cost", "refunds", "payout", "net")}
+    tot["sold"] = int(tot["sold"])
+    return {"merchant": m.model_dump(), "weeks": rows, "totals": tot}
 
 
 @api_router.get("/merchants/{mid}/dashboard")
 async def dashboard(mid: str):
     m = await merchant_or_404(mid)
     await settle_guarantees(m.id)
+    await sync_demo_orders(m.id)
     gs = [Guarantee.from_mongo(d) async for d in db.guarantees.find({"merchant_id": m.id})]
     active = [g for g in gs if g.status == "active"]
     premiums = sum(g.price for g in active)
@@ -792,6 +902,8 @@ async def on_startup():
         await db.guarantees.delete_many({"merchant_id": mid})
         await db.orders.delete_many({"merchant_id": mid})
         await db.merchants.delete_one({"_id": doc["_id"]})
+    # Un-stick reminders that were mid-send when the server stopped, so they retry.
+    await db.guarantees.update_many({"reminder_email_status": "sending"}, {"$unset": {"reminder_email_status": ""}})
     asyncio.create_task(settlement_loop())
 
 

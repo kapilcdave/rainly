@@ -120,6 +120,7 @@ export default function Dashboard() {
           <View style={[styles.list, { marginTop: 8 }]}>
             <ActionRow icon="phone-portrait-outline" title="Open checkout" sub="What your customers see" testID="open-checkout-button" to={`/merchant/${id}/checkout`} />
             <ActionRow icon="qr-code-outline" title="Share checkout link" sub="QR code for your counter or site" testID="open-share-button" to={`/merchant/${id}/share`} />
+            <ActionRow icon="bar-chart-outline" title="Weekly earnings" sub="What rain refunds earned you" testID="open-report-button" to={`/merchant/${id}/report`} />
             <ActionRow icon="play-outline" title="Settlement replay" sub="See a real rainy day play out" testID="open-replay-button" to={`/merchant/${id}/replay`} last />
           </View>
 
@@ -183,7 +184,7 @@ export default function Dashboard() {
       <View style={[styles.orderRow, i > 0 && styles.divider]} testID={`order-row-${i}`}>
         <Text style={[styles.orderMain, { flex: 1 }]}>
           {o.count} contracts @ {Math.round(o.price * 100)}¢
-          {o.mode === "kalshi_demo" ? <Text style={styles.demoTag}>{`  Kalshi demo · ${o.status}`}</Text> : null}
+          {o.mode === "kalshi_demo" ? <Text style={[styles.demoTag, o.status.startsWith("canceled") && { color: colors.error }]}>{`  Kalshi demo · ${o.status}`}</Text> : null}
         </Text>
         <Text style={styles.orderMain}>{money(o.count * o.price + o.fee)}</Text>
       </View>
