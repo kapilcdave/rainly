@@ -115,7 +115,7 @@ export default function Replay() {
               <Text style={styles.caption}>Entry price: {d.entry_source}</Text>
               {!d.would_offer ? (
                 <Text style={[styles.caption, { color: colors.warningText }]} testID="replay-not-offered-note">
-                  Above the 60% cap — in reality Rainly would have shown &quot;High rain risk&quot; and sold no refunds that day. Numbers below show what would have happened if it had.
+                  Above the 60% cap — in reality Rainthropic would have shown &quot;High rain risk&quot; and sold no refunds that day. Numbers below show what would have happened if it had.
                 </Text>
               ) : null}
             </View>
