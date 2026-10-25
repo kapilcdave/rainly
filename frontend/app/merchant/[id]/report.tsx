@@ -11,7 +11,13 @@ import { Header } from "@/src/components/Header";
 import { Btn } from "@/src/components/Btn";
 
 type Week = { week_of: string; sold: number; fees: number; hedge_cost: number; refunds: number; payout: number; net: number };
-type Report = { merchant: Merchant; weeks: Week[]; totals: Omit<Week, "week_of"> };
+type Report = { merchant: Merchant; weeks: Week[]; totals: Omit<Week, "week_of"> & { declined: number; attach_rate: number | null } };
+
+const UPSELL_TIPS = [
+  "Turn the rain refund on by default at checkout — most customers keep it.",
+  "Put the printed table card at the host stand and on every table.",
+  "Mention it when confirming weekend bookings, especially when rain is forecast.",
+];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const short = (iso: string) => {
@@ -87,6 +93,28 @@ export default function RevenueReport() {
             </View>
           ))}
 
+          <Text style={[styles.label, { marginTop: 32 }]}>Rain refund uptake</Text>
+          <View style={styles.row} testID="report-attach-rate">
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>
+                {r.totals.attach_rate === null ? "No checkouts yet" : `${Math.round(r.totals.attach_rate * 100)}% of bookings added a refund`}
+              </Text>
+              <Text style={styles.caption}>
+                {r.totals.sold} with a refund · {r.totals.declined} without
+              </Text>
+            </View>
+          </View>
+          <View style={styles.uptakeBar}>
+            <View style={[styles.uptakeFill, { flex: r.totals.sold || 0 }]} />
+            <View style={{ flex: r.totals.declined || (r.totals.sold ? 0 : 1) }} />
+          </View>
+          {UPSELL_TIPS.map((t, i) => (
+            <View key={t} style={[styles.row, i === 0 ? { marginTop: 8 } : styles.divider]} testID={`report-upsell-tip-${i}`}>
+              <Text style={styles.tipNum}>{i + 1}</Text>
+              <Text style={[styles.caption, { flex: 1, fontSize: 14, lineHeight: 20, color: colors.onSurfaceSecondary, marginTop: 0 }]}>{t}</Text>
+            </View>
+          ))}
+
           <Text style={[styles.tip]} testID="report-tip">
             Tip: offer the rain refund on every booking, not just on cloudy days. Each one earns you{" "}
             {r.merchant.margin_pct}% margin and the hedge covers the payout.
@@ -112,4 +140,7 @@ const useStyles = makeStyles((c) => ({
   caption: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: c.muted, marginTop: 2 },
   rowNet: { fontFamily: fonts.display, fontSize: 18 },
   tip: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: c.onSurfaceSecondary, marginTop: 24 },
+  uptakeBar: { flexDirection: "row", height: 8, borderRadius: 4, overflow: "hidden", backgroundColor: c.surfaceSecondary },
+  uptakeFill: { backgroundColor: c.brandPrimary },
+  tipNum: { width: 16, fontFamily: fonts.display, fontSize: 15, color: c.brandPrimary },
 }));

@@ -16,7 +16,8 @@ import { Disclosure } from "@/src/components/Disclosure";
 type PnL = { premiums: number; hedge_cost: number; refunds: number; payout: number; net: number };
 type Order = { id: string; ticker: string; count: number; price: number; fee: number; mode: string; status: string; note?: string; created_at: string };
 type Dash = {
-  merchant: Merchant;
+  merchant: Merchant & { brand?: string };
+  brand_locations: number;
   mode: string;
   stats: { guarantees_sold: number; active: number; refunded: number; expired: number; refund_emails_sent: number; with_email: number; contracts_held: number; hedge_cost: number; premiums: number; refund_liability: number };
   pnl: { if_rains: PnL; if_dry: PnL };
@@ -121,6 +122,16 @@ export default function Dashboard() {
             <ActionRow icon="phone-portrait-outline" title="Open checkout" sub="What your customers see" testID="open-checkout-button" to={`/merchant/${id}/checkout`} />
             <ActionRow icon="qr-code-outline" title="Share checkout link" sub="QR code for your counter or site" testID="open-share-button" to={`/merchant/${id}/share`} />
             <ActionRow icon="bar-chart-outline" title="Weekly earnings" sub="What rain refunds earned you" testID="open-report-button" to={`/merchant/${id}/report`} />
+            {d.brand_locations > 1 ? (
+              <ActionRow icon="business-outline" title="All locations" sub={`${d.brand_locations} locations, combined earnings`} testID="open-brand-button" to={`/brand/${encodeURIComponent(d.merchant.brand || d.merchant.name)}`} />
+            ) : null}
+            <ActionRow
+              icon="add-circle-outline"
+              title="Add a location"
+              sub="Run another city from the same business"
+              testID="add-location-button"
+              to={`/onboarding?brand=${encodeURIComponent(d.merchant.brand || d.merchant.name)}&type=${d.merchant.business_type}&avg=${d.merchant.avg_booking}`}
+            />
             <ActionRow icon="play-outline" title="Settlement replay" sub="See a real rainy day play out" testID="open-replay-button" to={`/merchant/${id}/replay`} last />
           </View>
 

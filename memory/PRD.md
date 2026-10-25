@@ -13,6 +13,7 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Frontend: Expo Router stack: `/`, `/merchants`, `/onboarding`, `/merchant/[id]`, `/merchant/[id]/checkout`, `/merchant/[id]/replay`. Fonts: Space Grotesk and Plus Jakarta Sans. Icons: Ionicons. The logo is drawn from Views (`src/components/Logo.tsx`), and the app icon, favicon and splash were regenerated in blue.
 
 ## Implemented (Oct 24 2026)
+- Merchant rain-chance alerts (optional contact_email; once a day when the weekend chance rises 10+ points and is still ≤60%). Customer coverage page /coverage/[gid] plus GET /api/guarantees/{id}, linked from checkout success. Attach-rate stats: declines are logged only when a refund was offered; the report shows uptake plus 3 upsell tips. Multi-location brands: "Add a location" and "All locations" rows, and /brand/[brand] with combined earnings.
 - Live order status: resting/partial Kalshi demo orders are synced on dashboard load and every 5 minutes (GET /portfolio/orders/{id}), giving filled, partial, resting or canceled, with real fill price and fees.
 - Printable table card (expo-print, A5) from the share screen, with an embedded QR from /api/qr?as_json=true.
 - Weekly earnings report (/api/merchants/{id}/report, /merchant/[id]/report): last 8 weeks with bar chart and per-week rows.
@@ -31,3 +32,8 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - P1: Sync resting demo order fills/cancels back into the order log.
 - P1: Background settlement job and refund notifications to customers.
 - P2: Embeddable checkout widget link or QR for merchants' own sites. Batch hedging. Track daily markets per merchant.
+
+## Backend refactor + email retries (Jun 2026)
+- server.py split: core.py (env/db/http), models.py, seed.py, services/{kalshi,notifications,settlement,reports}.py, routers/{markets,merchants,guarantees}.py. API paths unchanged.
+- All emails (confirm, reminder, refund, merchant price alert) retry automatically: brief in-place retries on provider rate limits, then backoff 5m → 15m → 1h → 4h, `gave_up` after 5 attempts. Fields: `<kind>_email_status|attempts|retry_at`. Interrupted sends recovered on startup.
+- Tests: tests/test_email_retry.py (unit), legacy tests updated for kalshi_demo mode.

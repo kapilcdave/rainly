@@ -67,6 +67,8 @@ export default function Checkout() {
     setError("");
     if (!on) {
       setResult({ guarantee: null, order: null as any });
+      // Only count it as "declined" when a refund was actually on offer.
+      if (available) api("/checkouts/declined", { method: "POST", body: JSON.stringify({ merchant_id: id }) }).catch(() => {});
       return;
     }
     const em = email.trim();
@@ -131,6 +133,9 @@ export default function Checkout() {
                 )}
                 <View style={{ gap: 8, alignSelf: "stretch", marginTop: 16 }}>
                   <Btn testID="checkout-new-booking-button" label="New booking" variant="secondary" onPress={reset} />
+                  {result.guarantee ? (
+                    <Btn testID="checkout-view-coverage-button" label="Check my coverage" icon="umbrella-outline" onPress={() => router.push(`/coverage/${result.guarantee.id}`)} />
+                  ) : null}
                   <Btn testID="checkout-to-dashboard-button" label="View dashboard" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/merchant/${id}`))} />
                 </View>
               </Animated.View>

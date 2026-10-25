@@ -110,6 +110,8 @@ async def send_email(*, to: str, subject: str, html: str) -> str:
         except ValueError:
             body = {}
         code = body.get("code", "")
+        if e.response.status_code == 429 and code not in ("daily_limit_reached",):
+            raise RuntimeError("rate_limited")
         if code in ("insufficient_credits", "integration_disabled", "daily_limit_reached"):
             logger.warning("Email paused: %s (%s): %s", code, e.response.status_code, body.get("message", ""))
             raise RuntimeError(code)
@@ -178,6 +180,37 @@ def reminder_email(*, customer_name: str, merchant_name: str, city: str, date_la
         '<tr><td style="padding:16px 24px;border-top:1px solid #E5E7EB;font-family:Arial,sans-serif;'
         'font-size:11px;line-height:16px;color:#6B7280">Sent by Rainly on behalf of '
         f'{e(merchant_name)}. We never ask for your password or card details by email.</td></tr>'
+        '</table></td></tr></table>'
+    )
+    return subject, html
+
+
+def price_alert_email(*, merchant_name: str, city: str, chance: str, jump: str, weekend: str,
+                      price: str, booking: str) -> tuple[str, str]:
+    """Merchant alert when the weekend rain chance jumps. Fixed template, interpolations escaped."""
+    subject = f"Rain chance up {jump} points in {city} — promote rain refunds today"
+    e = escape
+    html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6">'
+        '<tr><td align="center" style="padding:24px">'
+        '<table role="presentation" width="100%" style="max-width:480px;background:#FFFFFF;border-radius:16px">'
+        '<tr><td style="padding:24px 24px 0;font-family:Arial,sans-serif;color:#2563EB;font-size:18px;'
+        'font-weight:bold">Rainly</td></tr>'
+        '<tr><td style="padding:16px 24px 24px;font-family:Arial,sans-serif;color:#111827">'
+        f'<p style="font-size:16px;line-height:24px;margin:0 0 12px">Heads up, {e(merchant_name)}: the chance of rain '
+        f'in {e(city)} for the weekend of {e(weekend)} jumped {e(jump)} points in the last day.</p>'
+        f'<div style="font-size:44px;font-weight:bold;color:#111827">{e(chance)}</div>'
+        f'<p style="font-size:15px;line-height:23px;color:#374151;margin:16px 0 0">Customers worry more when rain '
+        f'is in the forecast, so this is a great day to mention rain refunds. Right now a refund on a {e(booking)} '
+        f'booking costs {e(price)}.</p>'
+        '<ul style="font-size:14px;line-height:22px;color:#374151;padding-left:18px">'
+        '<li>Put your Rainly table card by the host stand.</li>'
+        '<li>Mention it when confirming weekend bookings.</li>'
+        '<li>Share your checkout link on social today.</li></ul>'
+        '</td></tr>'
+        '<tr><td style="padding:16px 24px;border-top:1px solid #E5E7EB;font-family:Arial,sans-serif;'
+        'font-size:11px;line-height:16px;color:#6B7280">You get at most one alert a day. Prices come from live '
+        'Kalshi rain markets.</td></tr>'
         '</table></td></tr></table>'
     )
     return subject, html
