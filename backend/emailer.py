@@ -122,6 +122,40 @@ async def send_email(*, to: str, subject: str, html: str) -> str:
         raise RuntimeError("send_error")
 
 
+def booking_confirmation_email(*, customer_name: str, merchant_name: str, city: str, date_label: str,
+                               amount: str, price: str, rules: str) -> tuple[str, str]:
+    """Sent right after checkout. Fixed server-side template, all interpolations escaped."""
+    subject = f"Your rain refund for {merchant_name} is active"
+    e = escape
+    html = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6">'
+        '<tr><td align="center" style="padding:24px">'
+        '<table role="presentation" width="100%" style="max-width:480px;background:#FFFFFF;border-radius:16px">'
+        '<tr><td style="background:#2563EB;border-radius:16px 16px 0 0;padding:20px 24px;'
+        'font-family:Arial,sans-serif;color:#FFFFFF;font-size:20px;font-weight:bold">Rainly</td></tr>'
+        '<tr><td style="padding:24px;font-family:Arial,sans-serif;color:#111827">'
+        f'<p style="font-size:16px;margin:0 0 12px">Hi {e(customer_name)},</p>'
+        f'<p style="font-size:16px;line-height:24px;margin:0 0 16px">You&#39;re covered. If it rains in {e(city)} on '
+        f'{e(date_label)}, {e(merchant_name)} refunds your booking automatically — no claim needed.</p>'
+        '<table role="presentation" width="100%" style="background:#EFF6FF;border-radius:12px">'
+        '<tr><td style="padding:16px;font-family:Arial,sans-serif">'
+        '<div style="font-size:12px;color:#1E40AF;text-transform:uppercase;letter-spacing:1px">Refund if it rains</div>'
+        f'<div style="font-size:32px;font-weight:bold;color:#1E40AF">{e(amount)}</div>'
+        f'<div style="font-size:13px;color:#1E40AF;margin-top:4px">Rain refund paid: {e(price)}</div>'
+        '</td></tr></table>'
+        '<p style="font-size:13px;line-height:20px;color:#4B5563;margin:16px 0 0">'
+        '<strong>Official trigger:</strong> ' + e(rules) + '</p>'
+        '<p style="font-size:14px;line-height:22px;margin:16px 0 0">We&#39;ll email you again if it rains.</p>'
+        '</td></tr>'
+        '<tr><td style="padding:16px 24px;border-top:1px solid #E5E7EB;font-family:Arial,sans-serif;'
+        'font-size:11px;line-height:16px;color:#6B7280">Sent by Rainly on behalf of '
+        f'{e(merchant_name)}. Settled on official Weather Company / NWS station data via Kalshi, '
+        'a CFTC-regulated exchange. We never ask for your password or card details by email.</td></tr>'
+        '</table></td></tr></table>'
+    )
+    return subject, html
+
+
 def refund_email(*, customer_name: str, merchant_name: str, city: str, date_label: str,
                  amount: str, rules: str, ticker: str) -> tuple[str, str]:
     """Fixed server-side template. All interpolations are escaped."""

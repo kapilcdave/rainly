@@ -11,6 +11,7 @@ import { fonts, niceDate, pct } from "@/src/format";
 import { Logo } from "@/src/components/Logo";
 import { Btn } from "@/src/components/Btn";
 import { PitchFooter } from "@/src/components/Footer";
+import { Sparkline } from "@/src/components/Sparkline";
 
 const STEPS = [
   { icon: "storefront-outline", title: "Offer it at checkout", body: "Customers add a small rain refund." },
@@ -18,7 +19,7 @@ const STEPS = [
   { icon: "umbrella-outline", title: "Rain? Auto refund", body: "Customers are refunded and emailed automatically." },
 ];
 
-type Ticker = { weekend_of: string; listed: boolean; cities: { city: string; p: number | null; change: number | null }[] };
+type Ticker = { weekend_of: string; listed: boolean; cities: { city: string; p: number | null; change: number | null; history: number[] }[] };
 
 export default function Landing() {
   const styles = useStyles();
@@ -79,6 +80,11 @@ export default function Landing() {
                     </View>
                   ) : null}
                 </View>
+                <Sparkline
+                  data={c.history || []}
+                  color={colors.brandPrimary}
+                  testID={`ticker-sparkline-${c.city.replace(/\s/g, "-").toLowerCase()}`}
+                />
                 <Text style={styles.tickerSub}>chance of rain{c.change ? " · 24h" : ""}</Text>
               </View>
             ))
@@ -132,10 +138,10 @@ const useStyles = makeStyles((c) => ({
   tickerCard: { flexShrink: 0, width: 128, padding: 14, borderRadius: 16, backgroundColor: c.surfaceTertiary },
   tickerCity: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceTertiary },
   tickerP: { fontFamily: fonts.display, fontSize: 32, color: c.brandPrimary },
-  tickerPRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  tickerPRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, marginBottom: 8 },
   delta: { flexDirection: "row", alignItems: "center", gap: 2 },
   deltaText: { fontFamily: fonts.display, fontSize: 14 },
-  tickerSub: { fontFamily: fonts.body, fontSize: 11, color: c.muted },
+  tickerSub: { fontFamily: fonts.body, fontSize: 11, color: c.muted, marginTop: 6 },
   step: { flexDirection: "row", gap: 14, padding: 16, borderRadius: 16, backgroundColor: c.surfaceSecondary },
   stepNum: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.brandPrimary, alignItems: "center", justifyContent: "center" },
   stepNumText: { fontFamily: fonts.display, color: c.onBrandPrimary, fontSize: 16 },

@@ -13,6 +13,8 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Frontend: Expo Router stack: `/`, `/merchants`, `/onboarding`, `/merchant/[id]`, `/merchant/[id]/checkout`, `/merchant/[id]/replay`. Fonts: Space Grotesk and Plus Jakarta Sans. Icons: Ionicons. The logo is drawn from Views (`src/components/Logo.tsx`), and the app icon, favicon and splash were regenerated in blue.
 
 ## Implemented (Oct 24 2026)
+- Real Kalshi demo hedging ON (MOCK_TRADING=false, Ed25519 demo key). Uses Create Order V2 POST /portfolio/events/orders, side=bid, GTC limit at live ask + 3¢. Demo books are empty, so orders usually rest (status 'resting'). Rejections or network errors fall back to a simulated fill with a note.
+- Landing ticker: 24h change arrows plus a 24h sparkline per city. Share screen per merchant: QR code (/api/qr) plus app link (rainly:// scheme) and a Share button. Booking confirmation email sent at checkout when an email is given. Ed25519 and RSA Kalshi signing supported (demo key still pending).
 - UI simplification: dashboard profit hero, net-only P&L cards, details behind "See the math", "Official trigger" and "Order book" disclosures, 3 orders + "Show all". Checkout: name and email appear only after the toggle, trigger and pricing behind disclosures. Shorter replay copy. Fixed the hero sign, filtered zero-size asks, hid pricing on the success screen.
 - Recording prep: name set back to Rainly. "Diddy's Den" test merchant removed (also on any environment at backend start). Replay defaults to the newest date Rainly would actually have sold (Chicago YES: Oct 13, 38%, net +$142.80; NO: Oct 23). Selected date chip scrolls into view. Dashboard shows a "Same profit rain or shine" banner when both outcomes net the same.
 - Refund alert emails (Emergent managed email, from "Rainly"): optional customer email at checkout (shown when the refund is toggled on). When a market settles YES, guarantees flip to refunded and emails send in the background, with retry up to 3 attempts across 5-minute passes and no duplicates. The dashboard shows a refund-emails-sent count.
@@ -21,6 +23,6 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Testing iteration 1: all flows passed. The validation, navigation and UI issues it found are fixed.
 
 ## Backlog
-- P1: Add the Kalshi demo API keys and verify real demo order fills.
+- P1: Sync resting demo order fills/cancels back into the order log.
 - P1: Background settlement job and refund notifications to customers.
 - P2: Embeddable checkout widget link or QR for merchants' own sites. Batch hedging. Track daily markets per merchant.

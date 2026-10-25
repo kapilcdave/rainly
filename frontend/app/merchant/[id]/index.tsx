@@ -79,9 +79,10 @@ export default function Dashboard() {
         refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={q.refetch} />}
       >
         <View style={styles.pad}>
+          <Btn testID="open-checkout-button" label="Checkout widget" icon="phone-portrait-outline" onPress={() => router.push(`/merchant/${id}/checkout`)} />
           <View style={styles.actions}>
-            <Btn testID="open-checkout-button" label="Checkout widget" icon="phone-portrait-outline" onPress={() => router.push(`/merchant/${id}/checkout`)} style={{ flex: 1 }} />
-            <Btn testID="open-replay-button" label="Replay" icon="play-outline" variant="secondary" onPress={() => router.push(`/merchant/${id}/replay`)} />
+            <Btn testID="open-replay-button" label="Replay" icon="play-outline" variant="secondary" onPress={() => router.push(`/merchant/${id}/replay`)} style={{ flex: 1 }} />
+            <Btn testID="open-share-button" label="Share link" icon="qr-code-outline" variant="secondary" onPress={() => router.push(`/merchant/${id}/share`)} style={{ flex: 1 }} />
           </View>
 
           <Animated.View entering={FadeInDown} style={styles.hero} testID={same ? "same-profit-banner" : "profit-hero"}>
@@ -192,6 +193,7 @@ export default function Dashboard() {
       <View style={[styles.orderRow, i > 0 && styles.divider]} testID={`order-row-${i}`}>
         <Text style={[styles.orderMain, { flex: 1 }]}>
           {o.count} contracts @ {Math.round(o.price * 100)}¢
+          {o.mode === "kalshi_demo" ? <Text style={styles.demoTag}>{`  Kalshi demo · ${o.status}`}</Text> : null}
         </Text>
         <Text style={styles.orderMain}>{money(o.count * o.price + o.fee)}</Text>
       </View>
@@ -252,6 +254,7 @@ const useStyles = makeStyles((c) => ({
   orderRow: { flexDirection: "row", gap: 8, paddingVertical: 10 },
   divider: { borderTopWidth: 1, borderTopColor: c.divider },
   orderMain: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.onSurface },
+  demoTag: { fontFamily: fonts.bodySemi, fontSize: 11, color: c.successText },
   lineK: { fontFamily: fonts.body, fontSize: 13, color: c.onSurfaceSecondary },
   lineV: { fontFamily: fonts.displayMd, fontSize: 13, color: c.onSurface },
   badge: { paddingHorizontal: 10, height: 28, borderRadius: 999, justifyContent: "center" },

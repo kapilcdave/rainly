@@ -24,7 +24,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-from emailer import EMAIL_RE, refund_email, send_email  # noqa: E402  (needs env loaded)
+from emailer import EMAIL_RE, booking_confirmation_email, refund_email, send_email  # noqa: E402  (needs env loaded)
+import io  # noqa: E402
+import qrcode  # noqa: E402
+from fastapi.responses import Response  # noqa: E402
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -337,19 +340,30 @@ async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str
     order = HedgeOrder(merchant_id=merchant_id, guarantee_id=guarantee_id, ticker=ticker, count=count,
                        price=p, fee=round(fee * count, 2), mode="mock")
     if trading_mode() == "kalshi_demo":
-        path = "/portfolio/orders"
+        path = "/portfolio/events/orders"  # Create Order V2 (legacy /portfolio/orders is deprecated)
         signed_path = "/trade-api/v2" + path
         cid = f"rainly-{guarantee_id or ObjectId()}"
-        payload = {"ticker": ticker, "side": "yes", "action": "buy", "count": count, "type": "limit",
-                   "yes_price": min(99, max(1, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)))),
-                   "client_order_id": cid}
+        limit = min(0.99, max(0.01, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)) / 100))
+        payload = {"ticker": ticker, "client_order_id": cid, "side": "bid", "count": f"{count:.2f}",
+                   "price": f"{limit:.4f}", "time_in_force": "good_till_canceled",
+                   "self_trade_prevention_type": "taker_at_cross"}
         try:
             r = await _http.post(KALSHI_DEMO + path, headers=_signed_headers("POST", signed_path), json=payload)
             if r.status_code in (200, 201):
-                o = r.json().get("order", {})
-                order.mode = "kalshi_demo"
+                o = r.json()
+                filled = f(o.get("fill_count"))
                 order.kalshi_order_id = o.get("order_id")
-                order.status = o.get("status") or "submitted"
+                order.mode = "kalshi_demo"
+                if filled > 0:
+                    order.price = f(o.get("average_fill_price")) or p
+                    order.fee = round(f(o.get("average_fee_paid")) * filled, 2)
+                    order.status = "filled" if filled >= count else f"partial {filled:g}/{count}"
+                else:
+                    # Demo books are often empty: the limit bid rests on the demo exchange until a seller arrives.
+                    order.price = limit
+                    order.fee = 0.0
+                    order.status = "resting"
+                    order.note = f"Resting limit bid at {round(limit * 100)}¢ on Kalshi demo"
             else:
                 order.note = f"Demo rejected ({r.status_code}); simulated fill at live ask"
                 logger.warning("Kalshi demo order rejected %s %s", r.status_code, r.text[:300])
@@ -461,6 +475,24 @@ async def cities():
     return {"cities": names}
 
 
+async def history_24h(m: dict) -> list[float]:
+    """Hourly YES ask closes over the last 24h (oldest first), for the landing sparkline."""
+    end = int(time.time())
+    end -= end % 600  # stable cache key per 10 minutes
+    try:
+        series = m["event_ticker"].split("-")[0]
+        cs = await kget(f"/series/{series}/markets/{m['ticker']}/candlesticks",
+                        {"start_ts": end - 86400, "end_ts": end, "period_interval": 60}, ttl=600) or {}
+    except HTTPException:
+        return []
+    out = []
+    for c in cs.get("candlesticks", []):
+        a = f((c.get("yes_ask") or {}).get("close_dollars"))
+        if 0 < a <= 1:
+            out.append(round(a, 2))
+    return out
+
+
 @api_router.get("/ticker")
 async def ticker():
     sat = weekend_saturday(today_et())
@@ -472,6 +504,7 @@ async def ticker():
         p_now = f(m.get("yes_ask_dollars")) if m else 0
         out.append({"city": c, "p": p_now if m else None,
                     "change": round((p_now - prev) * 100) if m and prev > 0 else None,  # points vs ~24h ago
+                    "history": await history_24h(m) if m else [],
                     "last": f(m.get("last_price_dollars")) if m else None,
                     "ticker": m.get("ticker") if m else None, "status": m.get("status") if m else None})
     return {"event_ticker": event_ticker("weekend", sat), "weekend_of": sat.isoformat(), "listed": markets is not None, "cities": out}
@@ -540,7 +573,44 @@ async def create_guarantee(body: GuaranteeCreate):
     res = await db.guarantees.insert_one(g.to_mongo())
     g.id = str(res.inserted_id)
     order = await place_hedge(m.id, g.id, q["ticker"], q["contracts"], q["p"], q["fee_per_contract"])
+    if email:
+        t = asyncio.create_task(send_booking_confirmation(g, m, q.get("rules_primary") or ""))
+        _bg_tasks.add(t)
+        t.add_done_callback(_bg_tasks.discard)
     return {"guarantee": g.model_dump(), "order": order.model_dump(), "quote": q}
+
+
+def date_label(g: Guarantee) -> str:
+    d = date.fromisoformat(g.date)
+    return f"the weekend of {d.strftime('%b %-d')}" if g.kind == "weekend" else d.strftime('%A, %b %-d')
+
+
+_bg_tasks: set = set()  # keep references so background email tasks aren't garbage-collected
+
+
+async def send_booking_confirmation(g: Guarantee, m: Merchant, rules: str):
+    subject, html = booking_confirmation_email(
+        customer_name=g.customer_name or "there", merchant_name=m.name, city=m.city, date_label=date_label(g),
+        amount=f"${g.booking_value:,.2f}", price=f"${g.price:,.2f}", rules=rules)
+    try:
+        await send_email(to=g.customer_email, subject=subject, html=html)
+        status = "sent"
+    except (RuntimeError, ValueError) as e:
+        status = f"failed:{e}"
+    except Exception as e:
+        logger.exception("booking confirmation failed: %s", e)
+        status = "failed:error"
+    await db.guarantees.update_one({"_id": ObjectId(g.id)}, {"$set": {"confirm_email_status": status}})
+
+
+@api_router.get("/qr")
+async def qr_png(data: str):
+    if not data or len(data) > 500:
+        raise HTTPException(400, "data must be 1-500 characters")
+    img = qrcode.make(data, box_size=10, border=2)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return Response(content=buf.getvalue(), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @api_router.get("/merchants/{mid}/dashboard")
