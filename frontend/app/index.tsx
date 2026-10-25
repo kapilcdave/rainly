@@ -18,7 +18,7 @@ const STEPS = [
   { icon: "umbrella-outline", title: "Rain? Auto refund", body: "Customers are refunded and emailed automatically." },
 ];
 
-type Ticker = { weekend_of: string; listed: boolean; cities: { city: string; p: number | null }[] };
+type Ticker = { weekend_of: string; listed: boolean; cities: { city: string; p: number | null; change: number | null }[] };
 
 export default function Landing() {
   const styles = useStyles();
@@ -70,8 +70,16 @@ export default function Landing() {
                 <Text style={styles.tickerCity} numberOfLines={1}>
                   {c.city}
                 </Text>
-                <Text style={styles.tickerP}>{c.p === null ? "—" : pct(c.p)}</Text>
-                <Text style={styles.tickerSub}>chance of rain</Text>
+                <View style={styles.tickerPRow}>
+                  <Text style={styles.tickerP}>{c.p === null ? "—" : pct(c.p)}</Text>
+                  {c.change ? (
+                    <View style={styles.delta} testID={`ticker-change-${c.city.replace(/\s/g, "-").toLowerCase()}`}>
+                      <Ionicons name={c.change > 0 ? "caret-up" : "caret-down"} size={12} color={c.change > 0 ? colors.success : colors.error} />
+                      <Text style={[styles.deltaText, { color: c.change > 0 ? colors.successText : colors.error }]}>{Math.abs(c.change)}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.tickerSub}>chance of rain{c.change ? " · 24h" : ""}</Text>
               </View>
             ))
           )}
@@ -123,7 +131,10 @@ const useStyles = makeStyles((c) => ({
   tickerRow: { gap: 12, paddingHorizontal: 20, paddingTop: 12, minHeight: 100 },
   tickerCard: { flexShrink: 0, width: 128, padding: 14, borderRadius: 16, backgroundColor: c.surfaceTertiary },
   tickerCity: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceTertiary },
-  tickerP: { fontFamily: fonts.display, fontSize: 32, color: c.brandPrimary, marginTop: 4 },
+  tickerP: { fontFamily: fonts.display, fontSize: 32, color: c.brandPrimary },
+  tickerPRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  delta: { flexDirection: "row", alignItems: "center", gap: 2 },
+  deltaText: { fontFamily: fonts.display, fontSize: 14 },
   tickerSub: { fontFamily: fonts.body, fontSize: 11, color: c.muted },
   step: { flexDirection: "row", gap: 14, padding: 16, borderRadius: 16, backgroundColor: c.surfaceSecondary },
   stepNum: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.brandPrimary, alignItems: "center", justifyContent: "center" },

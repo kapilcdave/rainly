@@ -468,7 +468,10 @@ async def ticker():
     out = []
     for c in TICKER_CITIES:
         m = find_market(markets or [], c)
-        out.append({"city": c, "p": f(m.get("yes_ask_dollars")) if m else None,
+        prev = f(m.get("previous_yes_ask_dollars")) if m else 0
+        p_now = f(m.get("yes_ask_dollars")) if m else 0
+        out.append({"city": c, "p": p_now if m else None,
+                    "change": round((p_now - prev) * 100) if m and prev > 0 else None,  # points vs ~24h ago
                     "last": f(m.get("last_price_dollars")) if m else None,
                     "ticker": m.get("ticker") if m else None, "status": m.get("status") if m else None})
     return {"event_ticker": event_ticker("weekend", sat), "weekend_of": sat.isoformat(), "listed": markets is not None, "cities": out}
