@@ -69,7 +69,7 @@ export default function Dashboard() {
         fallback="/merchants"
         right={
           <Text style={[styles.badgeText, { color: d.mode === "mock" ? colors.warningText : colors.successText }]} testID="trading-mode-badge">
-            {d.mode === "mock" ? "Simulated" : "Kalshi demo"}
+            {d.mode === "mock" ? "Simulated" : d.mode === "kalshi_live" ? "Live on Kalshi" : "Kalshi demo"}
           </Text>
         }
       />
@@ -184,6 +184,7 @@ export default function Dashboard() {
         <Text style={[styles.orderMain, { flex: 1 }]}>
           {o.count} contracts @ {Math.round(o.price * 100)}¢
           {o.mode === "kalshi_demo" ? <Text style={[styles.demoTag, o.status.startsWith("canceled") && { color: colors.error }]}>{`  Kalshi demo · ${o.status}`}</Text> : null}
+          {o.mode === "kalshi_live" ? <Text style={styles.demoTag}>{`  Live · ${o.status}`}</Text> : null}
         </Text>
         <Text style={styles.orderMain}>{money(o.count * o.price + o.fee)}</Text>
       </View>

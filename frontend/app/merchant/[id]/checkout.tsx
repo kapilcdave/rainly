@@ -126,7 +126,11 @@ export default function Checkout() {
                     <View style={styles.hedgeBox} testID="checkout-hedge-confirmation">
                       <Text style={styles.hedgeText}>
                         Hedged: {result.order.count} contracts @ {Math.round(result.order.price * 100)}¢ on Kalshi
-                        {result.order.mode === "mock" ? " (simulated at live price)" : ` (Kalshi demo · ${result.order.status})`}
+                        {result.order.mode === "mock"
+                          ? " (simulated at live price)"
+                          : result.order.mode === "kalshi_live"
+                            ? ` (real order · ${result.order.status})`
+                            : ` (Kalshi demo · ${result.order.status})`}
                       </Text>
                     </View>
                   </>

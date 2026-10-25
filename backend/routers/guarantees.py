@@ -9,7 +9,7 @@ from core import db, bg_tasks
 from emailer import EMAIL_RE
 from models import Guarantee, GuaranteeCreate
 from routers.merchants import merchant_or_404
-from services.kalshi import build_quote, check_kind, f, kget, parse_day, place_hedge, today_et, weekend_saturday
+from services.kalshi import HedgeFailed, build_quote, check_kind, f, kget, parse_day, place_hedge, today_et, weekend_saturday
 from services.notifications import send_booking_confirmation
 
 router = APIRouter()
@@ -31,7 +31,11 @@ async def create_guarantee(body: GuaranteeCreate):
                   fee_per_contract=q["fee_per_contract"], contracts=q["contracts"], hedge_cost=q["hedge_cost"],
                   price=q["price"], depth_warning=not q["depth_ok"], customer_email=email)
     g.id = str((await db.guarantees.insert_one(g.to_mongo())).inserted_id)
-    order = await place_hedge(m.id, g.id, q["ticker"], q["contracts"], q["p"], q["fee_per_contract"])
+    try:
+        order = await place_hedge(m.id, g.id, q["ticker"], q["contracts"], q["p"], q["fee_per_contract"])
+    except HedgeFailed as e:  # never sell a refund we couldn't hedge
+        await db.guarantees.delete_one({"_id": ObjectId(g.id)})
+        raise HTTPException(409, str(e))
     if email:
         t = asyncio.create_task(send_booking_confirmation(g, m, q.get("rules_primary") or ""))
         bg_tasks.add(t)

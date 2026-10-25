@@ -20,6 +20,11 @@ KALSHI_DEMO = os.environ['KALSHI_DEMO_BASE'].rstrip('/')
 MOCK_TRADING = os.environ.get('MOCK_TRADING', 'true').lower() == 'true'
 KALSHI_ACCESS_KEY = os.environ.get('KALSHI_ACCESS_KEY', '')
 KALSHI_PRIVATE_KEY_PEM = os.environ.get('KALSHI_PRIVATE_KEY_PEM', '')
+# Real-money trading on Kalshi production (takes priority over demo/mock when the prod key is set).
+KALSHI_LIVE_TRADING = os.environ.get('KALSHI_LIVE_TRADING', 'false').lower() == 'true'
+KALSHI_PROD_ACCESS_KEY = os.environ.get('KALSHI_PROD_ACCESS_KEY', '')
+KALSHI_PROD_PRIVATE_KEY_PEM = os.environ.get('KALSHI_PROD_PRIVATE_KEY_PEM', '')
+DAILY_HEDGE_CAP = float(os.environ.get('DAILY_HEDGE_CAP', '10'))  # max real dollars spent on hedges per ET day
 
 MAX_P = 0.60
 DEPTH_SLIPPAGE = 0.03

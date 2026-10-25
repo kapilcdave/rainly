@@ -65,8 +65,10 @@ class HedgeOrder(BaseDocument):
     count: int
     price: float
     fee: float
-    mode: str  # mock | kalshi_demo
+    mode: str  # mock | kalshi_demo | kalshi_live
     status: str = "filled"
+    filled: Optional[float] = None
+    cost: Optional[float] = None  # dollars actually spent (live orders), counts toward the daily cap
     kalshi_order_id: Optional[str] = None
     note: Optional[str] = None
     created_at: str = Field(default_factory=now_iso)

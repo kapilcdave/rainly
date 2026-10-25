@@ -1,0 +1,43 @@
+{
+  "summary": "Read-only regression in REAL kalshi_live mode. No real order was placed: there was no POST to /api/guarantees, the browser had a route guard that aborts any such POST (0 blocked), the confirm button was never tapped, and the DB still has 0 kalshi_live orders and Maria at 41 guarantees / 41 orders. Backend checks: GET /api/meta returns mode=kalshi_live. The Chicago weekend 2026-10-24 quote is available=false with reason 'Not enough sellers on Kalshi right now' for $45 (depth_within_3c=12.34 < 45 contracts), and available=true for $7 (price $1.00, p=0.04). The requested pytest command (iter9 + email_retry) ran 12 passed / 4 skipped after I fixed the tests. A new test_iter10_live_hardening.py passed 11/11, using a fake http.post. Combined run: 23 passed / 4 skipped. Frontend at 375x667: the landing page renders (hero, live odds ticker) with 0 page errors. The Maria dashboard badge reads 'Live on Kalshi', and the only actions are open-checkout-button and open-replay-button. Checkout shows only the open date chips (Weekend Oct 24–25, Today Oct 25). At $45 it shows 'Rain refund unavailable', the reason 'Not enough sellers on Kalshi right now · rain chance 4%', and the toggle is disabled, so tapping it does nothing. At $7 it shows 'Rain refund +$1.00' and '4% chance of rain'. Toggling on shows the name and email inputs and a total of $8.00. Switching back to $45 resets the toggle (label 'Confirm booking', total $45.00).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/meta", "issue": "Returns mock_trading:true while mode is 'kalshi_live'. The field is misleading, so drop it or derive it from trading_mode()."},
+      {"endpoint": "services/kalshi._place_live", "issue": "The worst-case estimate count*limit*1.07 can underestimate tiny orders by about $0.01, because Kalshi rounds the order fee up to the cent. Example: 5 contracts at 7c gives an estimate of 0.3745, but the real maximum is about 0.38. The cap could be overshot by cents."},
+      {"endpoint": "POST /api/guarantees (kalshi_live)", "issue": "On a lost connection the order is recorded as status='unknown' at worst-case cost, but nothing reconciles it with Kalshi (for example a GET /portfolio/orders lookup by client_order_id). If the customer retries, a new guarantee id and cid are created, which could double-buy (still within the cap)."},
+      {"endpoint": "POST /api/guarantees", "issue": "The server re-quotes at POST time and charges q['price']. If the live price changed after the UI quote (refetched every 15s), the customer may be charged a different price than the one shown. Consider sending the expected price and rejecting on mismatch."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter9_live_trading_guards.py",
+    "/app/backend/tests/test_iter10_live_hardening.py",
+    "/app/test_reports/pytest/pytest_iter10.xml"
+  ],
+  "action_items": [
+    "Optional: remove or fix 'mock_trading' in /api/meta so it matches the live mode.",
+    "Optional: add a reconcile job for kalshi_live orders with status 'unknown' (look them up by client_order_id).",
+    "Optional: pass the displayed price from checkout to POST /api/guarantees and reject on mismatch, to avoid surprise pricing.",
+    "Optional: add +$0.01 per order to the worst-case cost to cover Kalshi's fee rounding."
+  ],
+  "critical_code_review_comments": [
+    "_place_live: fill_or_kill is correct, the asyncio.Lock wraps the spent_today() re-check and the POST, a partial or rejected fill raises HedgeFailed, and a connection error records the worst-case cost. All of this was verified in-process with a fake http.post.",
+    "build_quote in live mode applies the budget cap and the depth gate (depth within p+3c must be at least the contract count). Checkout correctly disables the toggle and shows the reason.",
+    "create_guarantee deletes the guarantee on HedgeFailed and returns 409. A guarantee is never sold unhedged."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter9_live_trading_guards.py (SAFETY: test_create_guarantee_mock_then_cleanup now skips unless mode==mock, because before this it would have POSTed a REAL order in live mode; mock-only assertions skip in live mode; the live fixture stubs a deep orderbook; one event loop is shared across modules)",
+    "/app/backend/tests/test_iter10_live_hardening.py (new)"
+  ],
+  "success_rate": {"backend": "100% (23 passed, 4 mock-only tests skipped)", "frontend": "100%"},
+  "seed_data_creation": "None. The test_connection_lost test inserts one kalshi_live 'unknown' order with guarantee_id TEST_iter10_gid and deletes it in fixture teardown (verified: 0 kalshi_live orders remain).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "THE BACKEND IS IN REAL kalshi_live MODE. Never POST /api/guarantees and never tap checkout-confirm-button with the toggle on. In Playwright, page.route-abort POST /api/guarantees. The env date is 2026-10-25. Chicago is about 4%, depth within 3c is about 12 contracts, so $45 is unavailable and $7 is available. In-process tests must monkeypatch core.http.post and share core._test_loop (motor binds to one loop)."
+}

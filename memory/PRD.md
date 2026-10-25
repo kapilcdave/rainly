@@ -43,3 +43,9 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Dashboard actions: only Open checkout + Settlement replay (share/report/locations screens still exist, rows removed).
 - Checkout: no "Check my coverage" button; hedge line "(simulated at live price)"; date chips only for open markets (/api/meta date_options[].open).
 - Morning reminder emails off (REMINDER_EMAILS=False in services/notifications.py).
+
+## Real-money Kalshi trading (Jun 2026)
+- Mode `kalshi_live` when KALSHI_LIVE_TRADING=true + KALSHI_PROD_ACCESS_KEY/KALSHI_PROD_PRIVATE_KEY_PEM set (verified, prod balance $25.85). Falls back to demo/mock otherwise.
+- Orders: fill-or-kill at live ask + 3¢ on api.elections.kalshi.com; failed hedge → booking deleted, 409. Lock serializes live orders; DAILY_HEDGE_CAP=$10/ET day (worst-case cost checked in quote and inside the lock). Lost-connection orders recorded as status "unknown" with worst-case cost.
+- Quote unavailable in live mode when orderbook depth < contracts ("Not enough sellers on Kalshi right now").
+- No real test order placed (user declined).

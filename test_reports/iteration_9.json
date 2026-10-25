@@ -1,0 +1,35 @@
+{
+  "summary": "Preview + mock-mode regression after the live-trading code was added. Results: backend 10/10 pytest and frontend 100%. Preview at 390x844: the landing page renders fully (hero, live rain-odds ticker for 5 cities, How it works, Get started), with 0 console or page errors. GET /api/meta returns mode='mock' with 4 date_options, each with a boolean 'open' (env date 2026-10-25; Weekend Oct 24-25 and Today Oct 25 are open). The env has KALSHI_LIVE_TRADING=true but no prod keys, so trading_mode() is 'mock'. The Maria dashboard shows the 'Simulated' badge and only the open-checkout-button and open-replay-button actions. Checkout (Weekend Oct 24-25, $45, refund on) showed the success message 'Hedged: 45 contracts @ 4¢ on Kalshi (simulated at live price)', with no checkout-view-coverage-button and no 'Check my coverage'. In the DB the order is mode=mock, status=filled, note='Simulated at live Kalshi price', cost=None. In-process tests patched trading_mode to 'kalshi_live' and blocked http.post, so no real orders were placed. (1) When _place_live raises HedgeFailed, create_guarantee raises a 409 with the message and leaves 0 guarantees and 0 kalshi_live orders. (2) A faked live fill records cost and spent_today() sums it. (3) build_quote returns available=False with 'Today's hedge budget is used up' when spent=9.99, and also for a single $500 booking at spent=0; a $20 booking is still available. In mock mode, a $500 quote is available with no budget reason. Kalshi Create Order V2 response fields (fill_count, average_fill_price, average_fee_paid) match the current docs. All TEST_ data was cleaned up (Maria is back to 41 guarantees / 41 orders).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/guarantees (kalshi_live)", "issue": "The daily cap is checked in build_quote before the order, with no lock or atomic reservation. Concurrent checkouts can each pass the check and together spend more than DAILY_HEDGE_CAP."},
+      {"endpoint": "POST /api/guarantees (kalshi_live)", "issue": "A partial IOC fill is still sold as a full refund (status 'partial x/y'), leaving the business under-hedged. Consider rejecting or refunding the unhedged part, or sizing the guarantee to the filled count."},
+      {"endpoint": "services/kalshi._place_live", "issue": "On a network exception (for example a timeout after Kalshi accepted the order), the guarantee is deleted and a 409 is returned, but a real position may exist. That position is not recorded in db.orders, so spent_today() misses it and the cap can be bypassed. Nothing reconciles these orders (for example a lookup by client_order_id)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter9_live_trading_guards.py", "/app/test_reports/pytest/pytest_iter9.xml"],
+  "action_items": [
+    "Optional hardening before real keys are added: reserve cap budget atomically (e.g. insert a pending kalshi_live order with the estimated cost before placing, then update it), or serialize live hedges with an asyncio.Lock.",
+    "Optional: handle partial IOC fills (cancel or refund the uncovered part, or size coverage to the filled count).",
+    "Optional: on a network error from Kalshi, record a 'unknown' order with client_order_id and reconcile it via GET /portfolio/orders?client_order_id, so real fills are never lost from spent_today().",
+    "Note: .env already has KALSHI_LIVE_TRADING=true, so adding prod keys alone switches to real money immediately, even though MOCK_TRADING=true. This is intended, but make it clear to the user."
+  ],
+  "critical_code_review_comments": [
+    "create_guarantee correctly inserts the guarantee, calls place_hedge, and on HedgeFailed deletes the guarantee and returns 409. place_hedge only inserts the order after _place_live succeeds, so there are no orphan orders.",
+    "trading_mode() gives kalshi_live priority only when the flag and both prod keys are present. The current env resolves to mock (verified).",
+    "The cap estimate (contracts * min(0.99, p + 0.03) * 1.07) is conservative and works as designed."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter9_live_trading_guards.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None persisted. TEST_iter9 and TEST_iter9_ui guarantees/orders were created and deleted, and the fake kalshi_live order (kalshi_order_id=TEST_fake) was deleted inside the test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Env date is about 2026-10-25 (Sunday ET), and Chicago is around 4%. Live-mode tests monkeypatch services.kalshi.trading_mode/_place_live/spent_today and core.http.post in-process on a single module-level event loop (motor). Never remove the http.post guard. Maria has a baseline of 41 guarantees / 41 orders."
+}

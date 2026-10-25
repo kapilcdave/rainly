@@ -2,8 +2,9 @@
 import math
 import time
 import base64
+import asyncio
 from typing import Any, Optional
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 from bson import ObjectId
 from fastapi import HTTPException
@@ -12,7 +13,8 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from core import (db, http, logger, ET, KALSHI_PUBLIC, KALSHI_DEMO, MOCK_TRADING, KALSHI_ACCESS_KEY,
-                  KALSHI_PRIVATE_KEY_PEM, MAX_P, DEPTH_SLIPPAGE, now_iso)
+                  KALSHI_PRIVATE_KEY_PEM, KALSHI_LIVE_TRADING, KALSHI_PROD_ACCESS_KEY, KALSHI_PROD_PRIVATE_KEY_PEM,
+                  DAILY_HEDGE_CAP, MAX_P, DEPTH_SLIPPAGE, now_iso)
 from models import HedgeOrder
 
 _cache: dict[str, tuple[float, Any]] = {}
@@ -180,9 +182,17 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
     if p > MAX_P:
         return {**info, "reason": "High rain risk — not offered"}
     q = price_quote(p, booking_value, margin_pct)
+    if trading_mode() == "kalshi_live":
+        spent = await spent_today()
+        est = q["contracts"] * min(0.99, p + DEPTH_SLIPPAGE) * 1.07 + 0.01  # worst-case fill incl. fees
+        if spent + est > DAILY_HEDGE_CAP:
+            return {**info, **q, "reason": "Today's hedge budget is used up — back tomorrow"}
     ob = await orderbook(m["ticker"])
     limit = p + DEPTH_SLIPPAGE + 1e-9
     depth = sum(s for a, s in ob["asks"] if a <= limit)
+    if trading_mode() == "kalshi_live" and depth < q["contracts"]:  # a real hedge would not fill
+        return {**info, **q, "depth_within_3c": round(depth, 2), "depth_ok": False,
+                "reason": "Not enough sellers on Kalshi right now"}
     return {**info, **q, "available": True, "depth_within_3c": round(depth, 2),
             "depth_ok": depth >= q["contracts"], "reason": None}
 
@@ -242,27 +252,83 @@ async def entry_price(m: dict) -> Optional[float]:
 
 
 # ---------------------------------------------------------------- Order placement
-def _signed_headers(method: str, path: str) -> dict:
+def _signed_headers(method: str, path: str, live: bool = False) -> dict:
+    access, pem = (KALSHI_PROD_ACCESS_KEY, KALSHI_PROD_PRIVATE_KEY_PEM) if live else (KALSHI_ACCESS_KEY, KALSHI_PRIVATE_KEY_PEM)
     ts = str(int(time.time() * 1000))
-    key = serialization.load_pem_private_key(KALSHI_PRIVATE_KEY_PEM.replace("\\n", "\n").encode(), password=None)
+    key = serialization.load_pem_private_key(pem.replace("\\n", "\n").encode(), password=None)
     msg = f"{ts}{method.upper()}{path.split('?')[0]}".encode()
     if isinstance(key, Ed25519PrivateKey):
         sig = key.sign(msg)  # Ed25519 (RFC 8032), no padding
     else:
         sig = key.sign(msg, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH),
                        hashes.SHA256())
-    return {"KALSHI-ACCESS-KEY": KALSHI_ACCESS_KEY, "KALSHI-ACCESS-TIMESTAMP": ts,
+    return {"KALSHI-ACCESS-KEY": access, "KALSHI-ACCESS-TIMESTAMP": ts,
             "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(), "Content-Type": "application/json"}
 
 
 def trading_mode() -> str:
+    if KALSHI_LIVE_TRADING and KALSHI_PROD_ACCESS_KEY and KALSHI_PROD_PRIVATE_KEY_PEM:
+        return "kalshi_live"
     return "mock" if MOCK_TRADING or not (KALSHI_ACCESS_KEY and KALSHI_PRIVATE_KEY_PEM) else "kalshi_demo"
+
+
+async def spent_today() -> float:
+    """Real dollars spent on live hedges since midnight ET."""
+    start = datetime.combine(today_et(), datetime.min.time(), ET).astimezone(timezone.utc).isoformat()
+    rows = await db.orders.aggregate([{"$match": {"mode": "kalshi_live", "created_at": {"$gte": start}}},
+                                      {"$group": {"_id": None, "s": {"$sum": "$cost"}}}]).to_list(1)
+    return float(rows[0]["s"] or 0) if rows else 0.0
+
+
+class HedgeFailed(Exception):
+    pass
+
+
+_live_lock = asyncio.Lock()  # one real order at a time, so the daily cap can't be overshot by parallel checkouts
+
+
+async def _place_live(order: HedgeOrder, ticker: str, count: int, p: float, cid: str):
+    """Real-money buy on Kalshi production. Fill-or-kill: fully hedged or nothing, never left resting."""
+    path = "/portfolio/events/orders"
+    limit = min(0.99, max(0.01, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)) / 100))
+    worst = round(count * limit * 1.07, 2) + 0.01  # Kalshi rounds fees up to the cent
+    payload = {"ticker": ticker, "client_order_id": cid, "side": "bid", "count": f"{count:.2f}",
+               "price": f"{limit:.4f}", "time_in_force": "fill_or_kill",
+               "self_trade_prevention_type": "taker_at_cross"}
+    async with _live_lock:
+        if await spent_today() + worst > DAILY_HEDGE_CAP:
+            raise HedgeFailed("Today's hedge budget is used up — back tomorrow")
+        try:
+            r = await http.post(KALSHI_PUBLIC + path, headers=_signed_headers("POST", "/trade-api/v2" + path, live=True), json=payload)
+        except Exception as e:
+            # Kalshi may have accepted it: record the worst-case cost so the cap still holds, flag for review.
+            logger.error("Kalshi live order outcome unknown (%s): %s", cid, e)
+            await db.orders.insert_one({**order.to_mongo(), "mode": "kalshi_live", "status": "unknown", "cost": worst,
+                                        "note": f"Connection lost — check Kalshi for order {cid}"})
+            raise HedgeFailed("Couldn't confirm the hedge with Kalshi — please try again")
+    if r.status_code not in (200, 201):
+        logger.warning("Kalshi live order rejected %s %s", r.status_code, r.text[:300])
+        raise HedgeFailed("No sellers at the live price right now — no charge, please try again")
+    o = r.json()
+    filled = f(o.get("fill_count"))
+    if filled < count:
+        raise HedgeFailed("No sellers at the live price right now — no charge, please try again")
+    order.mode = "kalshi_live"
+    order.kalshi_order_id = o.get("order_id")
+    order.filled = filled
+    order.price = f(o.get("average_fill_price")) or limit
+    order.fee = round(f(o.get("average_fee_paid")) * filled, 2)
+    order.cost = round(order.price * filled + order.fee, 2)
+    order.status = "filled"
+    order.note = "Real order on Kalshi"
 
 
 async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str, count: int, p: float, fee: float) -> HedgeOrder:
     order = HedgeOrder(merchant_id=merchant_id, guarantee_id=guarantee_id, ticker=ticker, count=count,
                        price=p, fee=round(fee * count, 2), mode="mock", note="Simulated at live Kalshi price")
-    if trading_mode() == "kalshi_demo":
+    if trading_mode() == "kalshi_live":
+        await _place_live(order, ticker, count, p, f"rainly-{guarantee_id or ObjectId()}")  # raises HedgeFailed
+    elif trading_mode() == "kalshi_demo":
         path = "/portfolio/events/orders"  # Create Order V2 (legacy /portfolio/orders is deprecated)
         signed_path = "/trade-api/v2" + path
         cid = f"rainly-{guarantee_id or ObjectId()}"

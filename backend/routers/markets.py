@@ -30,7 +30,7 @@ async def meta():
         except HTTPException:
             ms = None
         o["open"] = bool(ms) and any(m.get("status") in ("active", "open") for m in ms)
-    return {"mode": trading_mode(), "mock_trading": MOCK_TRADING, "max_p": MAX_P,
+    return {"mode": trading_mode(), "mock_trading": trading_mode() == "mock", "max_p": MAX_P,
             "business_types": BUSINESS_TYPES, "date_options": opts}
 
 
