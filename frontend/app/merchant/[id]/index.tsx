@@ -120,18 +120,6 @@ export default function Dashboard() {
 
           <View style={[styles.list, { marginTop: 8 }]}>
             <ActionRow icon="phone-portrait-outline" title="Open checkout" sub="What your customers see" testID="open-checkout-button" to={`/merchant/${id}/checkout`} />
-            <ActionRow icon="qr-code-outline" title="Share checkout link" sub="QR code for your counter or site" testID="open-share-button" to={`/merchant/${id}/share`} />
-            <ActionRow icon="bar-chart-outline" title="Weekly earnings" sub="What rain refunds earned you" testID="open-report-button" to={`/merchant/${id}/report`} />
-            {d.brand_locations > 1 ? (
-              <ActionRow icon="business-outline" title="All locations" sub={`${d.brand_locations} locations, combined earnings`} testID="open-brand-button" to={`/brand/${encodeURIComponent(d.merchant.brand || d.merchant.name)}`} />
-            ) : null}
-            <ActionRow
-              icon="add-circle-outline"
-              title="Add a location"
-              sub="Run another city from the same business"
-              testID="add-location-button"
-              to={`/onboarding?brand=${encodeURIComponent(d.merchant.brand || d.merchant.name)}&type=${d.merchant.business_type}&avg=${d.merchant.avg_booking}`}
-            />
             <ActionRow icon="play-outline" title="Settlement replay" sub="See a real rainy day play out" testID="open-replay-button" to={`/merchant/${id}/replay`} last />
           </View>
 

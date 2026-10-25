@@ -261,7 +261,7 @@ def trading_mode() -> str:
 
 async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str, count: int, p: float, fee: float) -> HedgeOrder:
     order = HedgeOrder(merchant_id=merchant_id, guarantee_id=guarantee_id, ticker=ticker, count=count,
-                       price=p, fee=round(fee * count, 2), mode="mock")
+                       price=p, fee=round(fee * count, 2), mode="mock", note="Simulated at live Kalshi price")
     if trading_mode() == "kalshi_demo":
         path = "/portfolio/events/orders"  # Create Order V2 (legacy /portfolio/orders is deprecated)
         signed_path = "/trade-api/v2" + path

@@ -17,6 +17,7 @@ from services.kalshi import f, find_market, get_event_markets, kget, price_quote
 
 RETRY_MINUTES = [5, 15, 60, 240]  # wait after attempt 1, 2, 3, 4
 MAX_EMAIL_ATTEMPTS = len(RETRY_MINUTES) + 1
+REMINDER_EMAILS = False  # morning-of reminders switched off; confirmations and refund emails still send
 ALERT_JUMP = 0.10  # alert merchants when the weekend rain chance rises 10+ points in 24h
 SEND_GAP = 0.6  # seconds between sends, to stay under the email rate limit
 RATE_LIMIT_WAITS = (1.5, 4, None)  # in-place waits on a rate limit before falling back to the retry schedule
@@ -138,6 +139,8 @@ async def send_pending_refunds():
 # ---------------------------------------------------------------- Morning-of reminders
 async def send_reminders():
     """Morning-of email with the day's rain chance, once per covered booking (from 7am ET)."""
+    if not REMINDER_EMAILS:
+        return
     now = datetime.now(ET)
     if now.hour < 7:
         return

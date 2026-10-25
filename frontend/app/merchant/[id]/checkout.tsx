@@ -46,7 +46,9 @@ export default function Checkout() {
   }, [merchant.data, value]);
 
   const bv = parseFloat(value) || 0;
-  const dateOpt = meta.data?.date_options[opt];
+  const dateOpts = (meta.data?.date_options ?? []).filter((o) => o.open);
+  const sel = Math.min(opt, Math.max(0, dateOpts.length - 1));
+  const dateOpt = dateOpts[sel];
   const quote = useQuery({
     queryKey: ["quote", merchant.data?.city, dateOpt?.kind, dateOpt?.date, bv, merchant.data?.margin_pct],
     enabled: !!merchant.data && !!dateOpt && bv > 0,
@@ -124,7 +126,7 @@ export default function Checkout() {
                     <View style={styles.hedgeBox} testID="checkout-hedge-confirmation">
                       <Text style={styles.hedgeText}>
                         Hedged: {result.order.count} contracts @ {Math.round(result.order.price * 100)}¢ on Kalshi
-                        {result.order.mode === "mock" ? " (simulated)" : ` (Kalshi demo · ${result.order.status})`}
+                        {result.order.mode === "mock" ? " (simulated at live price)" : ` (Kalshi demo · ${result.order.status})`}
                       </Text>
                     </View>
                   </>
@@ -133,9 +135,6 @@ export default function Checkout() {
                 )}
                 <View style={{ gap: 8, alignSelf: "stretch", marginTop: 16 }}>
                   <Btn testID="checkout-new-booking-button" label="New booking" variant="secondary" onPress={reset} />
-                  {result.guarantee ? (
-                    <Btn testID="checkout-view-coverage-button" label="Check my coverage" icon="umbrella-outline" onPress={() => router.push(`/coverage/${result.guarantee.id}`)} />
-                  ) : null}
                   <Btn testID="checkout-to-dashboard-button" label="View dashboard" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/merchant/${id}`))} />
                 </View>
               </Animated.View>
@@ -146,9 +145,10 @@ export default function Checkout() {
                 <View>
                   <Text style={styles.label}>Date</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                    {meta.data.date_options.map((o, i) => (
-                      <Pressable key={o.label} testID={`checkout-date-${i}`} onPress={() => setOpt(i)} style={[styles.chip, i === opt && styles.chipOn]}>
-                        <Text style={[styles.chipText, i === opt && { color: colors.onBrandSecondary }]}>{o.label}</Text>
+                    {dateOpts.length === 0 ? <Text style={styles.chipText}>No dates open right now</Text> : null}
+                    {dateOpts.map((o, i) => (
+                      <Pressable key={o.label} testID={`checkout-date-${i}`} onPress={() => setOpt(i)} style={[styles.chip, i === sel && styles.chipOn]}>
+                        <Text style={[styles.chipText, i === sel && { color: colors.onBrandSecondary }]}>{o.label}</Text>
                       </Pressable>
                     ))}
                   </ScrollView>
@@ -248,7 +248,7 @@ export default function Checkout() {
                     {error}
                   </Text>
                 ) : null}
-                <Btn testID="checkout-confirm-button" label={on ? "Confirm with rain refund" : "Confirm booking"} loading={submitting} disabled={bv <= 0} onPress={confirm} />
+                <Btn testID="checkout-confirm-button" label={on ? "Confirm with rain refund" : "Confirm booking"} loading={submitting} disabled={bv <= 0 || (on && !dateOpt)} onPress={confirm} />
               </Animated.View>
             )}
           </View>

@@ -37,3 +37,9 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - server.py split: core.py (env/db/http), models.py, seed.py, services/{kalshi,notifications,settlement,reports}.py, routers/{markets,merchants,guarantees}.py. API paths unchanged.
 - All emails (confirm, reminder, refund, merchant price alert) retry automatically: brief in-place retries on provider rate limits, then backoff 5m → 15m → 1h → 4h, `gave_up` after 5 attempts. Fields: `<kind>_email_status|attempts|retry_at`. Interrupted sends recovered on startup.
 - Tests: tests/test_email_retry.py (unit), legacy tests updated for kalshi_demo mode.
+
+## Demo polish (Jun 2026)
+- MOCK_TRADING=true: hedges simulated at live Kalshi ask, note "Simulated at live Kalshi price" (demo-order code kept, switched off).
+- Dashboard actions: only Open checkout + Settlement replay (share/report/locations screens still exist, rows removed).
+- Checkout: no "Check my coverage" button; hedge line "(simulated at live price)"; date chips only for open markets (/api/meta date_options[].open).
+- Morning reminder emails off (REMINDER_EMAILS=False in services/notifications.py).

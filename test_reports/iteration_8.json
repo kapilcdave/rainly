@@ -1,0 +1,24 @@
+{
+  "summary": "Demo polish verified end-to-end. Backend: /api/meta mode=mock, mock_trading=true, every date_option has an 'open' boolean, next weekend 2026-10-31 open=false; POST /api/guarantees (Maria, Chicago, $45, weekend 2026-10-24) returned order.mode=mock, status=filled, note='Simulated at live Kalshi price', count=45, price equal to the live quote p (0.02); closed date 2026-10-31 rejected with 400 'Opens Monday'; REMINDER_EMAILS=False; test_email_retry.py 6/6 passed. Frontend (375x667): the dashboard action list shows only Open checkout + Settlement replay, share/report/add-location/brand testIDs are gone, and the badge reads 'Simulated'. Checkout chips show only open dates (Weekend Oct 24–25, Today Oct 24, Tomorrow Oct 25), with no Oct 31 and no 'Opens Monday'. Toggle on and confirm shows 'Hedged: 45 contracts @ 2¢ on Kalshi (simulated at live price)'. New booking and View dashboard buttons are present and work, and checkout-view-coverage-button is absent. The no-refund path shows 'No rain refund added'. The >60% 'High rain risk — not offered' state works via /api/quote (Miami, Seattle, etc.). Landing ticker and replay pages load with no page errors. All test data was cleaned up: Maria is at 41 guarantees and 41 orders, and the decline record created by the UI test was removed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter8_demo_polish.py", "/app/test_reports/pytest/iter8.xml"],
+  "action_items": [
+    "Optional hardening: checkout.tsx indexes the filtered open dateOpts with `opt`. If /api/meta refetches and a date closes (e.g. 'Today' after the market closes), opt can point past the end of the list. dateOpt then becomes undefined, and confirm() would throw on `dateOpt!.kind`. Clamp opt (or key the selection by kind+date) when dateOpts changes."
+  ],
+  "critical_code_review_comments": [
+    "No deprecated Expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) found; SafeAreaView comes from react-native-safe-area-context.",
+    "Removed actions leave no dead references in app/ or src/."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter8_demo_polish.py"],
+  "success_rate": {"backend": "100% (7/7 iter8 + 6/6 email retry)", "frontend": "100%"},
+  "seed_data_creation": "None persisted. TEST_iter8 / TEST_ui_iter8 guarantees + orders and one UI decline record were deleted.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Env date ~2026-10-24 23:24 ET (Saturday). Chicago ~2% rain chance, so refunds are offered. Miami/Seattle are >60%, which gives the not-offered state. conftest.py purges TEST_ guarantees/orders after the session. Checkout 'Confirm booking' without a refund POSTs /checkouts/declined (declines collection), so clean that up if you test it. Do not test email delivery (rate limits)."
+}

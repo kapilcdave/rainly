@@ -1,6 +1,7 @@
 """Public market data: meta, cities, landing ticker, quotes, QR codes and settlement replay."""
 import io
 import base64
+from datetime import date
 from typing import Optional
 
 import qrcode
@@ -22,8 +23,15 @@ async def root():
 
 @router.get("/meta")
 async def meta():
+    opts = date_options()
+    for o in opts:  # open = Kalshi has listed this date's market and it is still trading
+        try:
+            ms = await get_event_markets(o["kind"], date.fromisoformat(o["date"]))
+        except HTTPException:
+            ms = None
+        o["open"] = bool(ms) and any(m.get("status") in ("active", "open") for m in ms)
     return {"mode": trading_mode(), "mock_trading": MOCK_TRADING, "max_p": MAX_P,
-            "business_types": BUSINESS_TYPES, "date_options": date_options()}
+            "business_types": BUSINESS_TYPES, "date_options": opts}
 
 
 @router.get("/cities")

@@ -46,4 +46,4 @@ export type Quote = {
   booking_value: number;
 };
 
-export type DateOption = { kind: "weekend" | "daily"; date: string; label: string };
+export type DateOption = { kind: "weekend" | "daily"; date: string; label: string; open?: boolean };
