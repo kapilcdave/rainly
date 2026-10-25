@@ -16,7 +16,7 @@ Web app, mobile-first. Judges watch on a projector, merchants use a laptop dashb
 4. **Hedge math on screen:** refunds promised, contracts bought, cost, payout if it rains.
 5. **Raise "isn't this insurance?" yourself.**
 6. **Record a backup video of the demo.**
-7. **Don't make up a market size.** Real numbers: Sensible Weather sold 50k+ guarantees; Kalshi weather is on pace for ~$1.1B a year, up ~500%.
+7. **Don't make up a market size.** Real numbers: Sensible Weather has sold 1M+ guarantees through 8,000+ partners; Kalshi weather is on pace for ~$1.1B a year, up ~500%.
 8. **Last slide:** "Same engine, next market: capping GPU costs as compute markets mature." See [04](04-compute-markets.md).
 
 ## Questions judges will ask

@@ -13,6 +13,7 @@ Research behind Rainly, done 2026-10-24 at VibeCon (YC × Emergent hackathon).
 | [05-why-rainly-vs-self-hedging.md](05-why-rainly-vs-self-hedging.md) | Why a business can't just trade Kalshi itself, and the bring-your-own-keys architecture |
 | [06-pitch-and-judge-qa.md](06-pitch-and-judge-qa.md) | Pitch, demo tips, and answers to the questions judges will ask |
 | [07-emergent-build-prompt.md](07-emergent-build-prompt.md) | The prompt used to build the app in Emergent |
+| [08-submission.md](08-submission.md) | Submission form answers, demo click path, 2-minute script, Emergent polish prompt |
 | [data/](data/) | Kalshi API snapshots from 2026-10-24 (CSV) |
 | [scripts/pull_kalshi_snapshot.py](scripts/pull_kalshi_snapshot.py) | Re-pulls the snapshots from Kalshi's public API |
 
