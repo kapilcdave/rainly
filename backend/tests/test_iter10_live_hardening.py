@@ -26,14 +26,20 @@ class TestPublicLive:
         assert r.status_code == 200
         assert r.json().get("mode") == "kalshi_live"
 
-    def test_quote_45_thin_book(self):
+    def test_quote_45_weekend_walked_book(self):
+        # New (iter12): build_quote walks the book up to the 60c cap; 45 weekend contracts cost ~$14 walked,
+        # so the live cap rejects it as too large (not 'Not enough sellers' unless the book under 60c is too thin).
         q = requests.get(f"{BASE_URL}/api/quote", params={"city": "Chicago", "booking_value": 45, "kind": "weekend",
                                                          "date_str": "2026-10-24"}, timeout=30).json()
-        if q.get("depth_within_3c", 0) >= 45:
-            pytest.skip("Book got deeper - thin-book case not reproducible right now")
+        if q.get("status") not in ("active", "open"):
+            pytest.skip(f"Weekend market not open: {q.get('reason')}")
         assert q["available"] is False
-        assert q["reason"] == "Not enough sellers on Kalshi right now"
-        assert q["depth_ok"] is False
+        if q.get("limit") is None:
+            assert q["reason"] == "Not enough sellers on Kalshi right now" and q["depth_ok"] is False
+        else:
+            worst = round(45 * min(0.99, q["limit"] + 0.01) * 1.07, 2) + 0.01
+            assert worst > 10, f"walked worst-case {worst} fits the cap but quote unavailable: {q['reason']}"
+            assert q["reason"].startswith("Too large for today's hedge budget")
 
     def test_quote_7_available(self):
         q = requests.get(f"{BASE_URL}/api/quote", params={"city": "Chicago", "booking_value": 7, "kind": "weekend",
@@ -108,7 +114,7 @@ class TestPlaceLive:
         run(k._place_live(o, "KXTEST", 5, 0.04, "rainly-test"))
         body = k._calls[0]
         assert body["time_in_force"] == "fill_or_kill"
-        assert body["count"] == "5.00" and body["price"] == "0.0700"
+        assert body["count"] == "5.00" and body["price"] == "0.0500"  # iter12: limit passed directly (walked book) + 1c
         assert o.mode == "kalshi_live" and o.status == "filled" and o.cost == round(0.05 * 5 + 0.02, 2)
 
     def test_partial_fill_raises(self, k, monkeypatch):
@@ -150,7 +156,7 @@ class TestPlaceLive:
             run(k._place_live(_order(k), "KXTEST", 5, 0.04, "rainly-test"))
         doc = run(db.orders.find_one({"guarantee_id": TEST_GID}))
         assert doc and doc["mode"] == "kalshi_live" and doc["status"] == "unknown"
-        assert doc["cost"] == round(5 * 0.07 * 1.07, 2) + 0.01
+        assert doc["cost"] == round(5 * 0.05 * 1.07, 2) + 0.01 == k.live_worst_cost(5, 0.04)  # limit 4c + 1c tolerance
 
     def test_lock_serializes_concurrent_orders(self, k, monkeypatch):
         # cap 10, worst ~= 5*0.07*1.07 = 0.37 each; spent grows after each fill -> second must see first

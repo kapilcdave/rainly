@@ -1,0 +1,38 @@
+{
+  "summary": "I tested the 'not enough sellers' fix (build_quote now walks the order book) in the backend and the UI. Every requested check passed. Daily $45 Chicago quotes for 10/25 and 10/26 are available from the stream: p=0.01/limit=0.01 and p=0.02/limit=0.02, priced $1.00 and $1.15. Both match my own walk of the real Kalshi REST order book. The weekend $45 quote is unavailable with the 'Too large for today's hedge budget' reason (walked avg 30.07c, limit 34c, cost about $14.16, worst case about $16.86, cap $10). It does not show 'Not enough sellers'. walk_book unit tests pass. POST /api/guarantees with expected_price 0.01 returned 409 and created nothing. Maria still has 41 guarantees and there are 0 kalshi_live orders. I placed no real orders, sent no emails and never tapped the confirm button with the refund on. On the checkout screen the first chip is 'Today · Sunday, October 25th' and it is selected. The $45 refund shows +$1.00, and the weekend chip shows the too-large reason with the toggle disabled. Landing and dashboard load with no console errors. No deprecated Expo packages found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/merchants/{id}/dashboard", "issue": "The dashboard's live card is still hardcoded to the weekend market (routers/merchants.py:89 build_quote(..., 'weekend', ...)). At Maria's $45 average booking it shows 'Too large for today's hedge budget', while checkout now defaults to Today and offers the refund at +$1.00."},
+      {"endpoint": "GET /api/quote", "issue": "yes_ask (the 'rain chance') is the top-of-book price, even when that level is tiny. For the weekend it reads 2% from a 5-contract level, but the walked average is 30c and the bulk of the book sits at 33-35c, so the displayed rain chance is misleading."},
+      {"endpoint": "services/kalshi.py price_quote", "issue": "hedge_cost uses unrounded fees, while Kalshi rounds fees up to the cent per order. The quote can understate the cost by up to 1c. live_worst_cost already covers this for the cap, so it is cosmetic only."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Checkout", "issues": ["Date chips are 36px tall, under the 44pt minimum touch target (checkout-date-*).", "When the weekend refund is unavailable, the widget shows 'rain chance 2%' (thin top-of-book) next to the too-large reason, which is confusing.", "The pricing breakdown labels the rain chance in cents ('1¢') instead of a percentage."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter12_walk_book.py", "/app/backend/tests/test_iter10_live_hardening.py", "/app/backend/tests/test_iter9_live_trading_guards.py", "/app/backend/tests/test_iter11_ws_stream.py", "/app/test_reports/pytest/iter12_results.xml"],
+  "action_items": [
+    "Optional: point the dashboard live card at the same default option as checkout (Today daily), or at least show the daily quote too. Right now the merchant sees 'Too large' for their average booking while customers can buy one.",
+    "Optional: show the walked-average rain chance, or hide the rain chance when the top-of-book depth is tiny.",
+    "Optional: increase chip height to at least 44px."
+  ],
+  "critical_code_review_comments": [
+    "walk_book is correct: inclusive 60c cap, returns None when the book under the cap is too thin, and the average, worst level and fees match a hand calculation. The REST fallback drops levels under 1 contract, which is conservative.",
+    "In live mode, the cap check uses live_worst_cost(contracts, limit): every contract at limit+1c times 1.07, plus 1c. This matches _place_live, which adds 1c to the limit and uses fill_or_kill.",
+    "Checkout's dateOpts are filtered to open options and selected by index. If the 'Today' market closes while the page is open, the selected index silently moves to the next option. The expected_price guard limits the impact.",
+    "depth_within_3c is only returned on available quotes. Old tests depended on it, and I updated them."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter10_live_hardening.py", "/app/backend/tests/test_iter9_live_trading_guards.py", "/app/backend/tests/test_iter11_ws_stream.py", "/app/backend/tests/test_iter12_walk_book.py (new)"],
+  "success_rate": {"backend": "100% (41 passed, 4 skipped by design in kalshi_live mode)", "frontend": "100%"},
+  "seed_data_creation": "None. The guard POST returned 409 and nothing was persisted (Maria 41 guarantees, 0 kalshi_live orders).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "LIVE real-money mode. Safe test suite: cd /app/backend && python -m pytest tests/test_iter12_walk_book.py tests/test_iter10_live_hardening.py tests/test_iter9_live_trading_guards.py tests/test_iter11_ws_stream.py tests/test_email_retry.py -q -n0. The weekend KXRAINWKND-26OCT24 market closes around 2am ET Oct 26; the weekend and 10/25 tests skip once their markets close. Never tap checkout-confirm-button with rain-refund-toggle on.",
+  "rca_of_issue": "Before the fix, the depth gate only counted asks within 3c of the best ask, so $45 Chicago bookings could not fill there and showed 'Not enough sellers'. The fix walks the book up to 60c. The daily books now fill at 1-2c. The weekend book has only 5 contracts at 2c and then 33-35c, so the walked cost (about $14) exceeds the $10 cap, and the correct 'Too large' reason is shown."
+}

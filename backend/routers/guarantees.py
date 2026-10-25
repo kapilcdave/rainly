@@ -34,7 +34,7 @@ async def create_guarantee(body: GuaranteeCreate):
                   price=q["price"], depth_warning=not q["depth_ok"], customer_email=email)
     g.id = str((await db.guarantees.insert_one(g.to_mongo())).inserted_id)
     try:
-        order = await place_hedge(m.id, g.id, q["ticker"], q["contracts"], q["p"], q["fee_per_contract"])
+        order = await place_hedge(m.id, g.id, q["ticker"], q["contracts"], q["p"], q["fee_per_contract"], q.get("limit"))
     except HedgeFailed as e:  # never sell a refund we couldn't hedge
         await db.guarantees.delete_one({"_id": ObjectId(g.id)})
         raise HTTPException(409, str(e))

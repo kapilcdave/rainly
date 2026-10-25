@@ -44,12 +44,15 @@ class TestStreamQuotes:
         else:
             assert q["reason"]
 
-    def test_quote_large_depth_gate(self):
+    def test_quote_large_walked_book_gate(self):
+        # iter12: depth-within-3c gate replaced by walk_book up to 60c; $45 weekend walks to ~34c (~$14) > $10 cap
         q = requests.get(f"{BASE_URL}{QUOTE}45", timeout=20).json()
         assert q["price_source"] == "stream"
-        if q["depth_within_3c"] < 45:
-            assert q["available"] is False
-            assert q["reason"] == "Not enough sellers on Kalshi right now"
+        assert q["available"] is False
+        assert q["reason"] in ("Not enough sellers on Kalshi right now",
+                               "Too large for today's hedge budget — try a smaller booking or another date")
+        if q.get("limit") is not None:
+            assert q["p"] <= q["limit"] <= 0.60
 
     def test_quote_yes_ask_matches_dashboard_best_ask(self):
         q = requests.get(f"{BASE_URL}{QUOTE}7", timeout=20).json()

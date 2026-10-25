@@ -136,7 +136,8 @@ class TestLiveModeGuards:
         import routers.guarantees as rg
         o = _open_weekend()
 
-        async def _fake_fill(order, ticker, count, p, cid):
+        async def _fake_fill(order, ticker, count, limit, cid):  # iter12: 4th arg is the walked-book limit
+            p = limit
             order.mode = "kalshi_live"
             order.kalshi_order_id = "TEST_fake"
             order.filled = count

@@ -22,11 +22,11 @@ export function Header({ title, subtitle, right, fallback = "/" }: { title: stri
         <Ionicons name="chevron-back" size={22} color={colors.onSurface} />
       </Pressable>
       <View style={{ flex: 1 }}>
-        <Text style={styles.title} numberOfLines={1} testID="header-title">
+        <Text style={styles.title} numberOfLines={2} testID="header-title">
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.sub} numberOfLines={1}>
+          <Text style={styles.sub} numberOfLines={2}>
             {subtitle}
           </Text>
         ) : null}

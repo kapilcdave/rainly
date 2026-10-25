@@ -55,3 +55,12 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Quotes/hedges/landing ticker use streamed best ask + depth (quote.price_source = "stream"), REST fallback while stream is down. /api/meta.stream shows status.
 - Frontend polling: landing ticker 3s, checkout quote 3s, dashboard 5s.
 - Checkout sends expected_price; server returns 409 if the refund price rose before placing the hedge.
+
+## Not-enough-sellers fix (Jun 2026)
+- build_quote walks the streamed order book (walk_book) up to MAX_P=60¢: p = avg fill price, limit = worst level needed, fees per level. Live hedge uses fill-or-kill at limit+1¢. Live: unavailable only if the whole book under 60¢ can't fill ("Not enough sellers") or worst-case cost > $10 cap ("Too large for today's hedge budget…").
+- date_options reordered: Today, Tomorrow, this weekend, next weekend (daily books are deepest).
+
+## Plain-words reorg (Jun 2026)
+- Landing: example paragraph, How it works, then 'Today's rain odds from Kalshi'. Merchants: 'Try it as a business', 'bookings covered'.
+- Dashboard: rain line, Bookings covered / You earn, Open customer checkout, Customers covered (5 + show all), See a real rainy day, collapsed 'How it's hedged on Kalshi' (math, trigger, order book, orders). Badge 'Real orders on Kalshi'.
+- Checkout: header 'Your customer's checkout', auto-select first available date, 'Add a rain refund for $X', success customer line + 'For the business' box.

@@ -21,8 +21,8 @@ export default function Merchants() {
   return (
     <View style={styles.root}>
       <Header
-        title="Pick a merchant"
-        subtitle="No login needed"
+        title="Try it as a business"
+        subtitle="Pick a demo business, no login needed"
       />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 24 }}
@@ -46,7 +46,7 @@ export default function Merchants() {
                 <Ionicons name={(BUSINESS_ICONS[m.business_type] || "storefront-outline") as any} size={22} color={colors.brandPrimary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.name} numberOfLines={1}>
+                <Text style={styles.name} numberOfLines={2}>
                   {m.name}
                 </Text>
                 <Text style={styles.meta}>
@@ -55,7 +55,7 @@ export default function Merchants() {
               </View>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={styles.big}>{m.guarantees ?? 0}</Text>
-                <Text style={styles.small}>guarantees</Text>
+                <Text style={styles.small}>bookings covered</Text>
               </View>
             </Pressable>
           </Animated.View>

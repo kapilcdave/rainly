@@ -1,0 +1,46 @@
+{
+  "summary": "I tested the plain-words reorganisation of the landing, merchants, dashboard and checkout screens in the frontend only, at 375px and 320px with Playwright. POST /api/guarantees was blocked at the network layer and was never sent. I placed no real orders. Maria still has 41 bookings covered and there are 0 kalshi_live orders. Almost every requested check passes: the copy, the section order, the testIDs, the Real orders on Kalshi badge, the collapsed hedge section, Show all, the replay link, 44px chips, Today preselected, no auto-jump after picking the weekend chip, and Booking confirmed with the refund OFF. Issues found: (1) at 320px the 'You earn' value is clipped to '+$27....'; (2) the weekend unavailable reason shows 'hedge' on the customer checkout; (3) the 'Official trigger' label is visible on the checkout; (4) 'Show all 10' appears next to 41 bookings covered; (5) the copy says '$45.00' where the spec says '$45'; (6) names and the header are truncated at 320px. No console errors. No deprecated Expo packages found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Dashboard 'You earn' metric", "issue": "At 320px the value '+$27.28' is clipped to '+$27....' (scrollWidth 130 > clientWidth 120). adjustsFontSizeToFit does nothing on react-native-web, so this big number does not fit. Reference: app/merchant/[id]/index.tsx:230", "testID": "metric-you-earn", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Dashboard customers list", "issue": "The backend caps recent_guarantees at 10 (routers/merchants.py:116), so the disclosure reads 'Show all 10' while the metric says 41 bookings covered. 'Show all' is misleading.", "affected_testIDs": ["customers-show-all", "metric-bookings-covered"]}
+    ],
+    "design_issues": [
+      {"screen": "Checkout (customer-facing)", "issues": [
+        "The weekend unavailable reason shows the raw backend text 'Too large for today's hedge budget — try a smaller booking or another date'. The banned word 'hedge' appears on the primary customer surface (checkout.tsx:208). Map it in the frontend to plain words, e.g. 'Not available for this booking size, try another date'.",
+        "The disclosure label 'Official trigger' is always visible on the customer widget (checkout.tsx:250). The banned word 'trigger' is on a primary surface even though the text inside is collapsed. Suggest 'Official rain rule'.",
+        "The widget body reads 'Get your $45.00 back' but the spec says '$45 back' (money(bv) uses 2 decimals, checkout.tsx:198). The success line has the same issue, money(result.guarantee.booking_value) at checkout.tsx:131.",
+        "At 320px the header subtitle is truncated to 'This is what your customers see when they...'."
+      ]},
+      {"screen": "Merchants", "issues": ["The business name column is squeezed by the 'bookings covered' column. At 375px it shows 'Maria's Patio Taque...'; at 320px it shows 'Maria's Pati...', 'Bayfront Bo...' and 'Ice Cream S...'. Suggest a narrower right column, or letting the name wrap to 2 lines."]},
+      {"screen": "Dashboard", "issues": ["At 320px the header title is truncated to 'Maria's Patio ...' and the subtitle to 'Patio restaurant · Chi...' because the 'Real orders on Kalshi' badge takes the width.", "The first customer row is named 'Test', which is leftover test data in the demo."]},
+      {"screen": "Landing", "issues": ["At 320px the 'New York City' odds row is truncated to 'New York ...' (minor)."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_13.json"],
+  "action_items": [
+    "Make the metric-you-earn and metric-bookings-covered values fit at 320px on web: drop the font size (e.g. 28-30) when the width is under 360, or stack the cells. adjustsFontSizeToFit is ignored on web.",
+    "In checkout, map backend unavailable reasons such as 'hedge budget' to plain customer-facing words.",
+    "Rename the 'Official trigger' disclosure label on the checkout widget.",
+    "Use money(bv, 0) or similar for whole amounts so the widget body and success line read '$45 back'.",
+    "Change 'Show all {n}' to 'Show {n-5} more' or 'Show recent 10', or make the label match the 41 total.",
+    "Merchants rows: stop the long names truncating so badly at 320px and 375px.",
+    "Optional: the success screen repeats 'You're covered' in the title and again at the start of the first line."
+  ],
+  "critical_code_review_comments": [
+    "The auto-jump effect in checkout.tsx:67-69 is correctly gated by `picked`. Verified: the weekend chip stays selected after 9.5s of 3s refetches.",
+    "The success copy (checkout.tsx:127-144) has 'For the business' above the hedge line and no 'Check my coverage' button. The title 'You're covered' is repeated at the start of the body.",
+    "The refund-OFF confirm only POSTs /api/checkouts/declined when a refund was on offer. Verified: it was the only POST made."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not requested)", "frontend": "88%"},
+  "seed_data_creation": "None. Two refund-OFF confirms logged 2 declines via /api/checkouts/declined (no money).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "LIVE real-money mode. Never tap checkout-confirm-button with rain-refund-toggle ON. Block POST /api/guarantees with page.route in Playwright. Maria (6add11451f0373a8576b5b40) has 41 bookings and 0 kalshi_live orders. The weekend KXRAINWKND-26OCT24 quote is unavailable ('Too large for today's hedge budget'); Today's 10/25 quote is $1.00 for $45. All customer statuses are currently 'Covered' (nothing settled yet), so the Refunded/Stayed dry labels were verified by code review only.",
+  "rca_of_issue": "320px clipping: react-native-web does not support adjustsFontSizeToFit, so the 36px value with numberOfLines={1} gets an ellipsis. Hedge word on checkout: the backend quote.reason string is rendered verbatim."
+}

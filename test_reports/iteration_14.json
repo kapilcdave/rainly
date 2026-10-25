@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only retest of the 7 fixes from iteration 13, plus a regression check of /, /merchants, the dashboard and the checkout at 375px and 320px. Playwright aborted every POST at the network layer. No POST /api/guarantees was sent, and the one refund-OFF /api/checkouts/declined request was aborted, so no data was written. All 7 fixes pass. (1) At 320px the metric-you-earn value is shown in full as '+$27.28' at 26px, and at 375px at 36px; scrollWidth equals clientWidth. (2) The weekend reason now reads 'Too large for today's coverage limit ...', and the checkout has no 'hedge' or 'trigger' text while collapsed. (3) The disclosure is labelled 'Official rain rule'. (4) The widget reads 'Get your $45 back if it rains on Sunday, October 25th.' (5) The dashboard shows 'Show 5 more'. (6) The header title and subtitle wrap to 2 lines at 320px; merchant names wrap to 2 lines with no clipping; 'New York City' wraps on the landing page. (7) The refund-OFF success shows 'Booking confirmed' and 'No rain refund added.'; the refund-ON line \"You're covered: $45 back if it rains on {when}.\" was checked by code review only. Regression passes: the 'Real orders on Kalshi' badge, Today preselected, 'Add a rain refund for $1.00', 44px chips, a 56x48 toggle touch area, and the section order and copy. No app console errors. One minor leftover: the plain() mapping is case-sensitive and does not cover the backend reason \"Today's hedge budget is used up — back tomorrow\", or the error text from POST /guarantees.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Checkout unavailable reason / confirm error", "issue": "plain() in checkout.tsx:21 only replaces the exact lowercase \"today's hedge budget\". The backend also returns \"Today's hedge budget is used up — back tomorrow\" (services/kalshi.py:217, capital T), which would show 'hedge' to customers. The POST /guarantees 400 error (routers/guarantees.py:28) is set through setError(e.message) at checkout.tsx:102 without plain(), so the same wording could appear in checkout-error.", "affected_testIDs": ["rain-refund-unavailable-reason", "checkout-error"]}
+    ],
+    "design_issues": [
+      {"screen": "Dashboard (merchant)", "issues": ["Optional: the hedge details section still has the label 'Official trigger' (index.tsx:161). It is merchant-facing and collapsed, so this is low priority.", "The value is 26px at 320px and fits '+$27.28'. A value of 3 or more digits (e.g. '+$127.28') may still clip at 320px because numberOfLines={1} is set. Not reproduced with the current data."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_14.json"],
+  "action_items": [
+    "Make plain() case-insensitive and apply it to all hedge wording, e.g. r.replace(/hedge budget/gi, 'coverage limit'). Also run setError() messages from POST /guarantees through plain().",
+    "Optional: rename 'Official trigger' on the dashboard hedge details to 'Official rain rule' for consistency."
+  ],
+  "critical_code_review_comments": [
+    "checkout.tsx:19 amt() gives '$45' for whole amounts and 2 decimals otherwise. It is used in the widget body and the success line. Correct.",
+    "checkout.tsx:131-136: the success title is 'Booking confirmed'. The refund line is \"You're covered: {amt} back if it rains on {when}.\" Correct by code review.",
+    "index.tsx:43/231: the narrow (<360) font is 26. Verified at 320px."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not requested)", "frontend": "100% of requested retest items; 1 minor edge-case leftover"},
+  "seed_data_creation": "None. All POSTs were aborted in Playwright.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "LIVE real-money mode. Abort all POSTs with page.route. Maria (6add11451f0373a8576b5b40) has 41 bookings covered and the 'You earn' value is +$27.28. Today's 10/25 quote is $1.00 for $45. The weekend quote is unavailable (coverage limit). The 'Test' customer row is real user data; leave it.",
+  "rca_of_issue": "The leftover hedge wording comes from a case-sensitive exact-string replace in plain(), which misses the second backend reason variant."
+}

@@ -103,11 +103,11 @@ def date_options() -> list[dict]:
     sat = weekend_saturday(t)
     nxt = sat + timedelta(days=7)
     tom = t + timedelta(days=1)
-    return [
-        {"kind": "weekend", "date": sat.isoformat(), "label": wk_label(sat)},
-        {"kind": "weekend", "date": nxt.isoformat(), "label": wk_label(nxt)},
+    return [  # today first: the daily markets have the deepest books
         {"kind": "daily", "date": t.isoformat(), "label": f"Today · {long_day(t)}"},
         {"kind": "daily", "date": tom.isoformat(), "label": f"Tomorrow · {long_day(tom)}"},
+        {"kind": "weekend", "date": sat.isoformat(), "label": wk_label(sat)},
+        {"kind": "weekend", "date": nxt.isoformat(), "label": wk_label(nxt)},
     ]
 
 
@@ -148,8 +148,8 @@ async def orderbook(ticker: str) -> dict:
     return {"asks": asks, "bids": bids}
 
 
-def price_quote(p: float, booking_value: float, margin_pct: float) -> dict:
-    fee = 0.07 * p * (1 - p)
+def price_quote(p: float, booking_value: float, margin_pct: float, fee: Optional[float] = None) -> dict:
+    fee = 0.07 * p * (1 - p) if fee is None else fee
     contracts = math.ceil(booking_value)
     hedge_cost = contracts * (p + fee)
     price = max(1.0, hedge_cost * (1 + margin_pct / 100))
@@ -197,20 +197,47 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
         return {**info, "reason": "No sellers right now"}
     if p > MAX_P:
         return {**info, "reason": "High rain risk — not offered"}
-    q = price_quote(p, booking_value, margin_pct)
+    ob = live or await orderbook(m["ticker"])
+    contracts = math.ceil(booking_value)
+    fill = walk_book(ob["asks"], contracts)
+    if fill:
+        avg, worst, fee_total = fill
+        q = {**price_quote(avg, booking_value, margin_pct, fee=fee_total / contracts), "limit": worst}
+    elif trading_mode() == "kalshi_live":  # a real hedge would not fill below the rain-risk cap
+        return {**info, **price_quote(p, booking_value, margin_pct), "depth_ok": False,
+                "reason": "Not enough sellers on Kalshi right now"}
+    else:  # simulated: price at the best ask, flagged as thin
+        q = {**price_quote(p, booking_value, margin_pct), "limit": round(min(0.99, p + DEPTH_SLIPPAGE), 2)}
     if trading_mode() == "kalshi_live":
         spent = await spent_today()
-        est = q["contracts"] * min(0.99, p + DEPTH_SLIPPAGE) * 1.07 + 0.01  # worst-case fill incl. fees
+        est = live_worst_cost(contracts, q["limit"])
+        if est > DAILY_HEDGE_CAP:
+            return {**info, **q, "reason": "Too large for today's hedge budget — try a smaller booking or another date"}
         if spent + est > DAILY_HEDGE_CAP:
             return {**info, **q, "reason": "Today's hedge budget is used up — back tomorrow"}
-    ob = live or await orderbook(m["ticker"])
-    limit = p + DEPTH_SLIPPAGE + 1e-9
-    depth = sum(s for a, s in ob["asks"] if a <= limit)
-    if trading_mode() == "kalshi_live" and depth < q["contracts"]:  # a real hedge would not fill
-        return {**info, **q, "depth_within_3c": round(depth, 2), "depth_ok": False,
-                "reason": "Not enough sellers on Kalshi right now"}
+    depth = sum(s for a, s in ob["asks"] if a <= p + DEPTH_SLIPPAGE + 1e-9)
     return {**info, **q, "available": True, "depth_within_3c": round(depth, 2),
-            "depth_ok": depth >= q["contracts"], "reason": None}
+            "depth_ok": fill is not None, "reason": None}
+
+
+def walk_book(asks: list, n: int, cap: float = MAX_P) -> Optional[tuple[float, float, float]]:
+    """Cost of buying n contracts across ask levels up to the cap: (avg price, worst price, total fees) or None."""
+    left, cost, fees, worst = n, 0.0, 0.0, 0.0
+    for a, s in asks:
+        if a > cap + 1e-9 or left <= 0:
+            break
+        take = min(s, left)
+        cost += take * a
+        fees += take * 0.07 * a * (1 - a)
+        worst, left = a, left - take
+    if left > 1e-9:
+        return None
+    return round(cost / n, 4), worst, fees
+
+
+def live_worst_cost(contracts: int, limit: float) -> float:
+    """Most a live hedge can cost: every contract at the limit (+1¢ tolerance) plus fees rounded up."""
+    return round(contracts * min(0.99, limit + 0.01) * 1.07, 2) + 0.01
 
 
 async def history_24h(m: dict) -> list[float]:
@@ -303,11 +330,11 @@ class HedgeFailed(Exception):
 _live_lock = asyncio.Lock()  # one real order at a time, so the daily cap can't be overshot by parallel checkouts
 
 
-async def _place_live(order: HedgeOrder, ticker: str, count: int, p: float, cid: str):
+async def _place_live(order: HedgeOrder, ticker: str, count: int, limit: float, cid: str):
     """Real-money buy on Kalshi production. Fill-or-kill: fully hedged or nothing, never left resting."""
     path = "/portfolio/events/orders"
-    limit = min(0.99, max(0.01, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)) / 100))
-    worst = round(count * limit * 1.07, 2) + 0.01  # Kalshi rounds fees up to the cent
+    worst = live_worst_cost(count, limit)
+    limit = min(0.99, max(0.01, round(limit + 0.01, 2)))  # 1¢ tolerance for the book moving
     payload = {"ticker": ticker, "client_order_id": cid, "side": "bid", "count": f"{count:.2f}",
                "price": f"{limit:.4f}", "time_in_force": "fill_or_kill",
                "self_trade_prevention_type": "taker_at_cross"}
@@ -339,11 +366,14 @@ async def _place_live(order: HedgeOrder, ticker: str, count: int, p: float, cid:
     order.note = "Real order on Kalshi"
 
 
-async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str, count: int, p: float, fee: float) -> HedgeOrder:
+async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str, count: int, p: float, fee: float,
+                      limit: Optional[float] = None) -> HedgeOrder:
+    """p = average expected fill price; limit = highest book level needed to fill `count` (walked book)."""
+    limit = limit if limit is not None else min(0.99, p + DEPTH_SLIPPAGE)
     order = HedgeOrder(merchant_id=merchant_id, guarantee_id=guarantee_id, ticker=ticker, count=count,
                        price=p, fee=round(fee * count, 2), mode="mock", note="Simulated at live Kalshi price")
     if trading_mode() == "kalshi_live":
-        await _place_live(order, ticker, count, p, f"rainly-{guarantee_id or ObjectId()}")  # raises HedgeFailed
+        await _place_live(order, ticker, count, limit, f"rainly-{guarantee_id or ObjectId()}")  # raises HedgeFailed
     elif trading_mode() == "kalshi_demo":
         path = "/portfolio/events/orders"  # Create Order V2 (legacy /portfolio/orders is deprecated)
         signed_path = "/trade-api/v2" + path

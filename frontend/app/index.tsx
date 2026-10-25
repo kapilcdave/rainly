@@ -14,8 +14,8 @@ import { Sparkline } from "@/src/components/Sparkline";
 
 const STEPS = [
   ["Customer adds a rain refund.", "Priced from the live chance of rain."],
-  ["We hedge it on Kalshi.", "Contracts pay $1 each if it rains."],
-  ["Rain? Refunds go out.", "Same official station data, automatically."],
+  ["Rainly covers it on Kalshi.", "If it rains, Kalshi pays you back."],
+  ["Rain? Refunds go out.", "Based on official weather station data, automatically."],
 ];
 
 type Ticker = { date: string; label: string; listed: boolean; cities: { city: string; p: number | null; change: number | null; history: number[] }[] };
@@ -39,13 +39,34 @@ export default function Landing() {
             Rain shouldn&apos;t cost you customers.
           </Animated.Text>
           <Animated.Text entering={FadeInDown.delay(100).duration(500)} style={styles.lead}>
-            Sell a rain refund at checkout. It&apos;s priced from live Kalshi odds and hedged automatically.
+            Sell a rain refund at checkout. It&apos;s priced from live Kalshi odds and covered automatically.
           </Animated.Text>
+          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.example} testID="landing-example">
+            <Text style={styles.exampleText}>
+              A customer books a $45 patio table. They add a $1 rain refund. If it rains, they get $45 back, and Kalshi pays you the $45 so it
+              costs you nothing.
+            </Text>
+          </Animated.View>
         </View>
 
         <View style={[styles.pad, styles.sectionHead]}>
-          <Text style={styles.label}>
-            Rain odds{ticker.data ? ` · ${ticker.data.label}` : ""}
+          <Text style={styles.label}>How it works</Text>
+        </View>
+        <View style={styles.pad}>
+          {STEPS.map(([title, body], i) => (
+            <View key={title} style={[styles.stepRow, i > 0 && styles.divider]} testID={`how-step-${i + 1}`}>
+              <Text style={styles.stepNum}>{i + 1}</Text>
+              <Text style={styles.stepText}>
+                <Text style={styles.stepTitle}>{title} </Text>
+                {body}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={[styles.pad, styles.sectionHead]}>
+          <Text style={[styles.label, { flex: 1 }]} testID="odds-title">
+            Today&apos;s rain odds from Kalshi{ticker.data ? ` · ${ticker.data.label}` : ""}
           </Text>
           <View style={styles.live}>
             <View style={styles.dot} />
@@ -65,7 +86,7 @@ export default function Landing() {
                 style={[styles.oddsRow, i > 0 && styles.divider]}
                 testID={`ticker-${slug}`}
               >
-                <Text style={styles.city} numberOfLines={1}>
+                <Text style={styles.city} numberOfLines={2}>
                   {c.city}
                 </Text>
                 <View style={styles.spark}>
@@ -86,21 +107,6 @@ export default function Landing() {
           })}
         </View>
 
-        <View style={[styles.pad, styles.sectionHead]}>
-          <Text style={styles.label}>How it works</Text>
-        </View>
-        <View style={styles.pad}>
-          {STEPS.map(([title, body], i) => (
-            <View key={title} style={[styles.stepRow, i > 0 && styles.divider]} testID={`how-step-${i + 1}`}>
-              <Text style={styles.stepNum}>{i + 1}</Text>
-              <Text style={styles.stepText}>
-                <Text style={styles.stepTitle}>{title} </Text>
-                {body}
-              </Text>
-            </View>
-          ))}
-        </View>
-
         <PitchFooter />
       </ScrollView>
       <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
@@ -117,6 +123,8 @@ const useStyles = makeStyles((c) => ({
   brand: { fontFamily: fonts.display, fontSize: 20, color: c.onSurface, letterSpacing: -0.3 },
   h1: { fontFamily: fonts.display, fontSize: 42, lineHeight: 46, color: c.onSurface, letterSpacing: -1.2, marginTop: 40 },
   lead: { fontFamily: fonts.body, fontSize: 17, lineHeight: 25, color: c.onSurfaceSecondary, marginTop: 14 },
+  example: { marginTop: 20, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: c.brandPrimary },
+  exampleText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: c.onSurface },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 40, marginBottom: 4 },
   label: { fontFamily: fonts.bodySemi, fontSize: 12, color: c.muted, textTransform: "uppercase", letterSpacing: 0.8 },
   live: { flexDirection: "row", alignItems: "center", gap: 6 },

@@ -16,6 +16,10 @@ import { Disclosure } from "@/src/components/Disclosure";
 
 type Result = { guarantee: any; order: { count: number; price: number; mode: string; status: string; note?: string; ticker: string } };
 
+const amt = (n: number) => money(n, n % 1 === 0 ? 0 : 2);
+// Backend reasons can mention hedging; customers see plain words.
+const plain = (r?: string | null) => (r || "").replace(/hedge budget/gi, "coverage limit").replace(/\bhedge\b/gi, "cover");
+
 export default function Checkout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const styles = useStyles();
@@ -28,6 +32,7 @@ export default function Checkout() {
   const meta = useQuery({ queryKey: ["meta"], queryFn: () => api<{ date_options: DateOption[]; mode: string }>("/meta") });
 
   const [opt, setOpt] = useState(0);
+  const [picked, setPicked] = useState(false);
   const [value, setValue] = useState("");
   const [customer, setCustomer] = useState("");
   const [email, setEmail] = useState("");
@@ -60,6 +65,12 @@ export default function Checkout() {
   });
   const qd = quote.data;
   const available = !!qd?.available;
+  const when = dateOpt ? (dateOpt.kind === "daily" ? dateOpt.label.split(" · ").pop() : `the weekend of ${dateOpt.label.replace(/^Weekend /, "")}`) : "";
+
+  // Open on the first date that can actually be covered, until the customer picks one themselves.
+  useEffect(() => {
+    if (!picked && qd && !qd.available && sel < dateOpts.length - 1) setOpt(sel + 1);
+  }, [picked, qd, sel, dateOpts.length]);
 
   useEffect(() => {
     if (!available) setOn(false);
@@ -88,7 +99,7 @@ export default function Checkout() {
       qc.invalidateQueries({ queryKey: ["dash", id] });
       qc.invalidateQueries({ queryKey: ["merchants"] });
     } catch (e: any) {
-      setError(e.message);
+      setError(plain(e.message));
       quote.refetch(); // show the new price if it moved
     } finally {
       setSubmitting(false);
@@ -105,7 +116,7 @@ export default function Checkout() {
   const m = merchant.data;
   return (
     <View style={styles.root}>
-      <Header title="Checkout" subtitle="Customer view" fallback={`/merchant/${id}`} />
+      <Header title="Your customer's checkout" subtitle="This is what your customers see when they book" fallback={`/merchant/${id}`} />
       <KeyboardAwareScrollView ref={scrollRef} bottomOffset={24} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
         {!m || !meta.data ? (
           <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: 40 }} />
@@ -117,14 +128,15 @@ export default function Checkout() {
                 <Animated.View entering={ZoomIn.springify()} style={[styles.check, { backgroundColor: result.guarantee ? colors.brandPrimary : colors.success }]}>
                   <Ionicons name={result.guarantee ? "umbrella" : "checkmark"} size={36} color={colors.onBrandPrimary} />
                 </Animated.View>
-                <Text style={styles.doneTitle}>{result.guarantee ? "You're covered" : "Booking confirmed"}</Text>
+                <Text style={styles.doneTitle}>Booking confirmed</Text>
                 {result.guarantee ? (
                   <>
-                    <Text style={styles.doneBody}>
-                      If it rains on {dateOpt?.label}, you get {money(result.guarantee.booking_value)} back automatically
-                      {result.guarantee.customer_email ? ` and we'll email ${result.guarantee.customer_email}.` : "."}
+                    <Text style={styles.doneBody} testID="checkout-customer-line">
+                      You&apos;re covered: {amt(result.guarantee.booking_value)} back if it rains on {when}.
+                      {result.guarantee.customer_email ? ` We'll email ${result.guarantee.customer_email}.` : ""}
                     </Text>
                     <View style={styles.hedgeBox} testID="checkout-hedge-confirmation">
+                      <Text style={styles.hedgeLabel}>For the business</Text>
                       <Text style={styles.hedgeText}>
                         Hedged: {result.order.count} contracts @ {Math.round(result.order.price * 100)}¢ on Kalshi
                         {result.order.mode === "mock"
@@ -152,7 +164,10 @@ export default function Checkout() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                     {dateOpts.length === 0 ? <Text style={styles.chipText}>No dates open right now</Text> : null}
                     {dateOpts.map((o, i) => (
-                      <Pressable key={o.label} testID={`checkout-date-${i}`} onPress={() => setOpt(i)} style={[styles.chip, i === sel && styles.chipOn]}>
+                      <Pressable key={o.label} testID={`checkout-date-${i}`} onPress={() => {
+                          setPicked(true);
+                          setOpt(i);
+                        }} style={[styles.chip, i === sel && styles.chipOn]}>
                         <Text style={[styles.chipText, i === sel && { color: colors.onBrandSecondary }]}>{o.label}</Text>
                       </Pressable>
                     ))}
@@ -181,17 +196,20 @@ export default function Checkout() {
                       ) : available ? (
                         <>
                           <Text style={styles.widgetTitle} testID="rain-refund-offer-text">
-                            Rain refund +{money(qd!.price)}
+                            Add a rain refund for {money(qd!.price)}
                           </Text>
-                          <Text style={styles.widgetSub} testID="rain-chance-text">
-                            {pct(qd!.p)} chance of rain · full refund if it does
+                          <Text style={styles.widgetBody}>
+                            Get your {amt(bv)} back if it rains on {when}.
+                          </Text>
+                          <Text style={styles.small} testID="rain-chance-text">
+                            {pct(qd!.yes_ask ?? qd!.p)} chance of rain
                           </Text>
                         </>
                       ) : (
                         <>
                           <Text style={styles.widgetTitle}>Rain refund unavailable</Text>
                           <Text style={[styles.widgetSub, { color: colors.warningText }]} testID="rain-refund-unavailable-reason">
-                            {qd?.reason || (quote.isError ? "Couldn't reach live odds" : "")}
+                            {plain(qd?.reason) || (quote.isError ? "Couldn't reach live odds" : "")}
                             {qd?.yes_ask ? ` · rain chance ${pct(qd.yes_ask)}` : ""}
                           </Text>
                         </>
@@ -233,7 +251,7 @@ export default function Checkout() {
                     </Animated.View>
                   ) : null}
                   {qd?.rules_primary ? (
-                    <Disclosure label="Official trigger" testID="official-trigger-toggle">
+                    <Disclosure label="Official rain rule" testID="official-trigger-toggle">
                       <Text style={styles.trigger} testID="official-trigger-text">
                         {qd.rules_primary}
                       </Text>
@@ -263,7 +281,7 @@ export default function Checkout() {
           <View style={styles.math}>
             <Disclosure label="How is this priced?" testID="pricing-breakdown-toggle">
               <View style={{ gap: 8 }} testID="pricing-breakdown">
-                <MathRow k="Rain chance (live Kalshi price)" v={`${Math.round(qd.p! * 100)}¢`} />
+                <MathRow k="Rain chance (live Kalshi price)" v={pct(qd.p!)} />
                 <MathRow k="Contracts to cover the booking" v={String(qd.contracts)} />
                 <MathRow k="Hedge cost incl. Kalshi fee" v={money(qd.hedge_cost)} />
                 <MathRow k="Merchant margin" v={`${qd.margin_pct}%`} />
@@ -306,7 +324,7 @@ const useStyles = makeStyles((c) => ({
   merchant: { fontFamily: fonts.display, fontSize: 28, color: c.onSurface, letterSpacing: -0.5 },
   small: { fontFamily: fonts.body, fontSize: 12, color: c.muted, marginTop: 2 },
   label: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary, marginBottom: 6 },
-  chip: { flexShrink: 0, height: 36, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, justifyContent: "center" },
+  chip: { flexShrink: 0, height: 44, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, justifyContent: "center" },
   chipOn: { backgroundColor: c.brandSecondary, borderColor: c.brandPrimary },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
   row2: { flexDirection: "row", gap: 8 },
@@ -318,6 +336,7 @@ const useStyles = makeStyles((c) => ({
   toggleArea: { minWidth: 56, minHeight: 48, alignItems: "center", justifyContent: "center" },
   widgetTitle: { fontFamily: fonts.display, fontSize: 18, color: c.onSurface },
   widgetSub: { fontFamily: fonts.bodySemi, fontSize: 12, color: c.onSurfaceSecondary, marginTop: 2 },
+  widgetBody: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.onSurface, marginTop: 2 },
   trigger: { fontFamily: fonts.body, fontSize: 11, lineHeight: 16, color: c.onSurfaceTertiary },
   warn: { flexDirection: "row", gap: 6, padding: 10, borderRadius: 10, backgroundColor: c.warningSoft },
   warnText: { flex: 1, fontFamily: fonts.body, fontSize: 11, lineHeight: 16, color: c.warningText },
