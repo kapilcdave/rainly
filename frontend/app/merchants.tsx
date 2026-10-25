@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,10 +7,9 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import { api, Merchant } from "@/src/api";
 import { makeStyles, useTheme } from "@/src/theme";
-import { BUSINESS_ICONS, BUSINESS_LABELS, fonts, money } from "@/src/format";
+import { BUSINESS_ICONS, fonts, money } from "@/src/format";
 import { Header } from "@/src/components/Header";
 import { Btn } from "@/src/components/Btn";
-import { Logo } from "@/src/components/Logo";
 
 export default function Merchants() {
   const styles = useStyles();
@@ -23,15 +22,10 @@ export default function Merchants() {
     <View style={styles.root}>
       <Header
         title="Pick a merchant"
-        subtitle="Choose your business · no login needed"
-        right={
-          <View style={styles.logo}>
-            <Logo size={24} color={colors.brandPrimary} />
-          </View>
-        }
+        subtitle="No login needed"
       />
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 24 }}
         refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={q.refetch} />}
       >
         {q.isLoading ? <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: 40 }} /> : null}
@@ -56,7 +50,7 @@ export default function Merchants() {
                   {m.name}
                 </Text>
                 <Text style={styles.meta}>
-                  {BUSINESS_LABELS[m.business_type]} · {m.city} · avg {money(m.avg_booking, 0)}
+                  {m.city} · avg {money(m.avg_booking, 0)}
                 </Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
@@ -82,8 +76,8 @@ export default function Merchants() {
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
   logo: { width: 44, height: 44, borderRadius: 12, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center" },
-  card: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 20, backgroundColor: c.surfaceSecondary },
-  icon: { width: 48, height: 48, borderRadius: 14, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center" },
+  card: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 72, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
+  icon: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center" },
   name: { fontFamily: fonts.bodyBold, fontSize: 16, color: c.onSurface },
   meta: { fontFamily: fonts.body, fontSize: 13, color: c.muted, marginTop: 2 },
   big: { fontFamily: fonts.display, fontSize: 24, color: c.onSurface },

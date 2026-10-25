@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Rainthropic",
+    "name": "Rainly",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "rainly",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,

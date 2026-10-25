@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 4: backend 6/6 pytest passed, frontend flows all passed at 375x667. GET /api/ticker returns 5 cities, each with a history array (hourly yes_ask closes in (0,1]) and an int change. Live values: Chicago 24 pts, change -6; NYC 8 pts, -1; Miami 24, +4; Seattle 24, +19; Austin 24, -2. GET /api/qr: valid data -> 200 image/png with PNG magic bytes; 500 chars -> 200; empty -> 400; 501 chars -> 400; missing param -> 422. POST /api/guarantees for Maria's with customer_email delivered@resend.dev -> 200, and confirm_email_status became 'sent' (provider returned 202 Accepted, no rate limit). Exactly ONE email was sent. Cleanup removed that guarantee and only its order (filter guarantee_id == gid). Maria's ended at 41 guarantees / 41 orders (DB total also 41/41). Frontend: all 5 landing ticker cards render a sparkline (24 or 8 bars) and a change caret. Dashboard open-share-button -> /merchant/[id]/share loads the 220x220 QR image (image/png 200, natural size 450x450, encodes the http checkout link on web). share-link-text shows the link, and tapping it navigates to checkout. share-link-button with no navigator.share copies the link to the clipboard and shows 'Link copied'; with navigator.share it sends a title and text that includes the merchant name and link. The back button returns to the dashboard, including from a deep link. Regression: dashboard (same-profit-banner, pnl rows), checkout and replay all load. No page errors. No deprecated Expo packages found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/guarantees (send_booking_confirmation)", "issue": "asyncio.create_task(...) result is not kept, so the task can be garbage-collected before it finishes (a known Python pitfall). Only RuntimeError and ValueError are caught; any other exception leaves confirm_email_status unset and is not logged. Keep a reference in a module-level set and add a generic except that sets 'failed:error'. Reference: server.py:566,579-584"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Share clipboard fallback", "issue": "If navigator.clipboard is undefined, `await nav?.clipboard?.writeText(link)` does nothing and the screen still shows 'Link copied' (false success). Reference: share.tsx:36-38", "testID": "share-status", "priority": "LOW"},
+      {"component": "Share cancel", "issue": "When the user cancels the native web share sheet, navigator.share rejects with AbortError and the screen shows \"Couldn't share — long-press the link to copy it\". Ignore AbortError. Reference: share.tsx:43-45", "testID": "share-status", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Share checkout (375x667)", "issues": [
+        "share-link-button sits at the bottom of the viewport (y 628-680), so the share-status text below it is off-screen and the 'Link copied' feedback is not visible without scrolling. Consider a toast, or putting the status above or inside the button.",
+        "The long URL in share-link-text runs slightly past the right padding of the link box (unbreakable string with numberOfLines=2)."
+      ]},
+      {"screen": "Landing ticker", "issues": ["Rising rain chance gets a green up caret. For a merchant, more rain is bad news; consider a neutral color. The 'change' value is based on Kalshi previous_yes_ask, while the sparkline uses 24h hourly candles, so the two can disagree slightly."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter4_ticker_qr_confirm.py", "/app/test_reports/pytest/pytest_iter4.xml"],
+  "action_items": [
+    "(Low) Keep a reference to the background email task and catch generic exceptions -> confirm_email_status 'failed:error'",
+    "(Low) Share screen: show 'Link copied' only when the clipboard write actually happened, ignore AbortError on cancel, and make the status visible above the fold"
+  ],
+  "critical_code_review_comments": [
+    "share.tsx uses process.env.EXPO_PUBLIC_BACKEND_URL (the key that actually exists in frontend/.env), so it is consistent with the rest of the app.",
+    "The QR is built server-side with qrcode, and the input is length-validated. Cache-Control is 1 day, which is fine."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter4_ticker_qr_confirm.py"],
+  "success_rate": {"backend": "100% (6/6)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "None persisted. One TEST_email guarantee and its order were created and then deleted by exact id. Maria's verified at 41 guarantees / 41 orders.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Do NOT run test_rainly_api.py::test_create_guarantee_chicago_increments casually, because it adds Maria's guarantees (conftest cleans up TEST_ ones). Maria's id is 6add11451f0373a8576b5b40 and must stay at 41/41. The email test sends a real email; run it at most once. On web, screens are stacked, so use '[data-testid=\"header-back-button\"]:visible'."
+}

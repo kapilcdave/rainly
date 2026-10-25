@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 7: merchant contact_email + price alerts (code review only, no emails sent), customer coverage API + screen, decline logging / attach rate, multi-location brands. Backend: 10/10 pytest passed. Invalid contact_email gives 400 and nothing is inserted; an over-long email gives 422. GET /api/guarantees/{id} returns status active with no customer_email and no '@' anywhere; bad and unknown ids give 404. Maria's report totals are sold 41, declined 0, attach_rate 1.0. One decline makes it declined 1 and attach_rate 0.976, and the decline doc was deleted by _id afterwards. Unknown brand gives 404, and brand defaults to the merchant name. With TEST_Loc (Miami, same brand), the dashboard shows brand_locations 2 and the brand endpoint combines both locations (41/0 sold, 8 weeks). Frontend at 375px with TEST_Loc present: the dashboard shows Weekly earnings, All locations ('2 locations, combined earnings') and Add a location rows, each 64px tall. The brand screen shows +$27.28, '41 refunds sold across 2 locations', an 8-bar chart and brand-location-0/1 (Chicago/Miami), and tapping a location opens that merchant. Add a location opens the onboarding screen titled 'Add a location' with name, type and avg ($45) prefilled. Invalid email in onboarding gets a 400 and shows the 'Enter a valid email address' error, but the error is off-screen. The report shows '100% of bookings added a refund · 41 with a refund · 0 without' and tips 0-2. The coverage page shows ACTIVE, You're covered, $45.00, 2%, Sat Oct 24 – Sun Oct 25 and the payout row, and the Official trigger toggle expands the Kalshi rules. A bad coverage id shows coverage-error after about 7-12s. Checkout regression used route interception, so no real POSTs hit the backend: the decline path sends POST /checkouts/declined {merchant_id} and shows no coverage button. The refund path shows the checkout-view-coverage-button, which opens /coverage/<id>. The landing page and ticker load with no console errors. Final DB state: 2 merchants, Maria 41 guarantees / 41 orders, 0 declines, 0 contact_emails, TEST_Loc deleted by _id.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "send_price_alerts (server.py:545)", "issue": "Floating-point bug: `p - prev >= ALERT_JUMP` with p and prev in dollars misses exact 10-point jumps in 23 of 51 cases (e.g. 0.30-0.20 = 0.0999…, also 12/2, 15/5, 35/25). Compare in integer points: round((p - prev) * 100) >= 10."},
+      {"endpoint": "send_price_alerts (server.py:547-558)", "issue": "last_alert_date is claimed before sending. If Resend fails (it is rate-limited), the alert is silently lost for the day with no retry and no status recorded."},
+      {"endpoint": "GET /api/guarantees/{gid} (server.py:811)", "issue": "kget raises HTTPException 502 when Kalshi is down and there is no cached data, so the customer coverage page shows 'We couldn't find this booking'. Wrap the market fetch in try/except and return rain_chance=null."},
+      {"endpoint": "GET /api/guarantees/{gid}", "issue": "Unauthenticated, and ObjectIds are near-sequential (…5b42, …5b43), so customer_name, booking_value and date can be enumerated. Consider a random public token for coverage links."},
+      {"endpoint": "POST /api/checkouts/declined", "issue": "Unauthenticated and unthrottled, so anyone can push a merchant's attach rate down. The frontend also logs a decline when the refund was never offered (quote unavailable, e.g. p > 60% like Seattle at 95% today), which deflates attach_rate unfairly."},
+      {"endpoint": "GET /api/brands/{brand}", "issue": "The path param does not accept '/', so a brand like 'Bob's Bar / Grill' can never be opened (404). Use {brand:path} or a brand id. Matching is also exact (case and whitespace sensitive)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Onboarding error message", "issue": "On a server 400 (invalid contact email), onboarding-error renders at y=787 on a 667px viewport, below the fold and behind the sticky 'Create & open dashboard' button at y=603. The user taps submit and sees nothing happen. Scroll to the error or render it next to the email field or button.", "testID": "onboarding-error", "priority": "MEDIUM"},
+      {"component": "Coverage screen bad id", "issue": "react-query's default 3 retries on a 404 leave a spinner for about 7-12s before 'We couldn't find this booking' appears. Set retry: false (or skip retries on 404) for this query.", "testID": "coverage-error", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "brand/[brand]", "issues": ["Location rows show only the city. Two locations in the same city cannot be told apart, so show the merchant name too when names differ or cities repeat."]},
+      {"screen": "onboarding (Add a location) / merchants list", "issues": ["The name is prefilled with the brand, so new locations get the same name as the original and the merchants list shows duplicate 'Maria's Patio Taqueria' rows told apart only by city. Consider prefilling '<brand> – <city>' or grouping by brand."]},
+      {"screen": "checkout success", "issues": ["'Check my coverage' and 'View dashboard' are both primary buttons stacked together, so neither stands out. Make one of them secondary."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter7_alerts_coverage_brands.py", "/app/test_reports/pytest/pytest_iter7.xml"],
+  "action_items": [
+    "Fix the float comparison in send_price_alerts: use round((p - prev) * 100) >= 10.",
+    "Make the onboarding-error visible when the server returns 400 (scroll to it, or place it above the sticky submit button).",
+    "Make GET /api/guarantees/{gid} survive Kalshi outages (try/except around kget, rain_chance null).",
+    "Only log /checkouts/declined when the refund was actually offered (quote available).",
+    "Optional: disable react-query retries on the coverage 404; brand route {brand:path}; show the merchant name on brand location rows; record alert send failures."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 1027 lines (>700). Split routes, Kalshi client, settlement/alert jobs and reporting into modules.",
+    "The coverage endpoint correctly omits customer_email. The success screen shows the email only to the person checking out.",
+    "The startup brand migration (server.py:1007-1009) is idempotent. Existing merchants have brand = name.",
+    "No deprecated expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) found."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter7_alerts_coverage_brands.py"],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "~92% (all flows work; onboarding error visibility issue)"},
+  "seed_data_creation": "TEST_Loc merchant (6add70c90d0f0f4ca98d49a5) was created for the UI test and then deleted by _id. Pytest-created TEST_ merchants and the decline doc were deleted by _id. The final DB matches the required state.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Maria=6add11451f0373a8576b5b40 (Chicago, 41 guarantees/orders), Bayfront=6add11451f0373a8576b5b41. Run pytest with -n0 (pytest.ini enables xdist). The env var is EXPO_PUBLIC_BACKEND_URL. To test checkout success without placing a real demo order, intercept POST **/api/guarantees and **/api/checkouts/declined with page.route and fulfill a fake response.",
+  "rca_of_issue": "Onboarding error invisible: the error Text sits at the end of the scroll content while the submit Btn is in a sticky footer, so the error is out of view after submit. Alert jump: IEEE-754 subtraction of 2-decimal prices."
+}

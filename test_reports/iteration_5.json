@@ -1,0 +1,40 @@
+{
+  "summary": "Visual and functional regression check of the redesign at 375px and 320px (frontend only, no DB writes, no booking confirmed). Landing: logo wordmark, headline, 5 watchlist rows (ticker-<city> + sparkline + change), how-step-1..3 and the sticky Get started button (327x52) all render, with no horizontal overflow at 375 or 320. Merchant picker: merchant-card-0/1 (Maria 41 guarantees, Bayfront 0) and add-business-button work. Dashboard: same-profit-banner shows +$27.28 with 41 bookings covered and 1,845 contracts; pnl-if-rains and pnl-if-dry are both +$27.28; pnl-math-toggle, live-trigger-toggle and orderbook-toggle (5 asks) open; orders-show-all expands 3 to 41 rows; all 3 action rows (64px tall) go to checkout, share and replay. Checkout: the rain refund toggle turns on (+$1.15, total $46.15, label 'Confirm with rain refund'); customer and email inputs, official-trigger-toggle and pricing-breakdown-toggle work; switching to date-1 shows the unavailable state 'Opens Monday'. Share: QR code and link render. Replay: YES is the default, Tue Oct 13, net +$142.80. No console errors. Only minor layout and design polish issues were found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Checkout rain refund Switch (web)", "issue": "When on, the thumb shows react-native-web's default teal (#009688), which clashes with the blue brand track. Only thumbColor is set; add activeThumbColor={colors.surface} (web prop) as well. Reference: app/merchant/[id]/checkout.tsx:191-198", "testID": "rain-refund-toggle", "priority": "low"},
+      {"component": "Share title", "issue": "At 320px 'Scan for a rain refund' wraps to 2 lines and is left-aligned while the rest of the card is centered. styles.title has no textAlign:'center'. Reference: app/merchant/[id]/share.tsx:57,94", "testID": "share-qr-card", "priority": "low"},
+      {"component": "Dashboard order book", "issue": "Asks with a fractional size display as '0' (API ask [0.04, 0.01] rendered as '4¢  0'). Filter out sizes under 1 or show decimals. Reference: app/merchant/[id]/index.tsx:154", "testID": "orderbook-ask-1", "priority": "low"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Replay", "issues": ["Still uses the old card-heavy style (tinted rounded cards, round icon badges, a green-bordered 'Hedge paid out' card). This is inconsistent with the new plain white hairline-list style on landing and dashboard, and it is the 'AI slop' look the user complained about."]},
+      {"screen": "Landing @320", "issues": ["'New York City' truncates to 'New Yor…' because the city cell is squeezed by fixed sparkline/odds/change widths (64+52+40 plus gaps). Consider narrowing the sparkline at small widths.", "The section header 'RAIN ODDS · WEEKEND OF SAT OCT 24' wraps and leaves '24' alone on the second line next to LIVE."]},
+      {"screen": "Merchant picker", "issues": ["At 375px Maria's meta line wraps and leaves 'avg $45' split, with '$45' alone on line 2.", "At 320px the names truncate ('Maria's Patio Taq…', 'Bayfront Boat To…') and the header subtitle truncates.", "The logo tile on the right of the header is a 44px tinted square that looks tappable but does nothing."]},
+      {"screen": "Dashboard", "issues": ["The gap between 'See the math' and the action list (~47px) is larger than the other section rhythm. The list has marginTop 16, plus the pad gap of 8, plus the 44px disclosure row.", "At 320px the header title truncates to 'Maria's Patio Taque…' because of the 'Kalshi demo' badge (acceptable)."]},
+      {"screen": "Checkout / Replay date chips", "issues": ["The horizontal chip ScrollView sits inside 24px/16px padding, so chips are cut off mid-border at the padded edges when scrolled (seen at 320 after selecting date-1, and on the replay date row). Bleed the ScrollView to the screen edges (negative margin plus contentContainer padding)."]},
+      {"screen": "Sparkline", "issues": ["The bars are flex:1 with no gap, so the 0.28-opacity columns merge into a solid block. A 1px gap would read more like a sparkline. Reference: src/components/Sparkline.tsx:14-21"]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_5.json"],
+  "action_items": [
+    "Add activeThumbColor to the checkout Switch so the thumb is not teal on web",
+    "Center the share screen title (textAlign:'center')",
+    "Hide or format fractional order book ask sizes that show as '0'",
+    "Restyle the replay screen to match the new hairline/plain style (remove tinted cards and icon badges)",
+    "Optional polish: 320px truncation of the landing city name, the merchant meta wrap, the chip ScrollView edge clipping, and the sparkline bar gap"
+  ],
+  "critical_code_review_comments": [
+    "app/merchant/[id]/index.tsx keeps ~25 unused style keys from the old design (hero, heroBig, banner, metric, card, warn, badge*, empty, etc.). Remove the dead styles.",
+    "checkout.tsx still renders testID='checkout-phone-frame' plus a notch View with display:'none'. Remove the dead notch View.",
+    "No deprecated Expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) found in package.json."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not requested)", "frontend": "100% functional; 3 minor UI bugs and several design polish items"},
+  "seed_data_creation": "None. No bookings confirmed; Maria still at 41 guarantees / 41 active.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "MOCK_TRADING=false, so do NOT click checkout-confirm-button with the toggle on. Maria id 6add11451f0373a8576b5b40 (41 guarantees, all orders are mode 'mock', so the 'Kalshi demo · status' tag does not appear in order rows). header-title appears twice in the DOM because of the stack, so use .last. The replay date chips are testID replay-date-YYYY-MM-DD."
+}

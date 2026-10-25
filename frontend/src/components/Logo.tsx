@@ -15,7 +15,7 @@ const RECTS = [
 export function Logo({ size = 32, color }: { size?: number; color: string }) {
   const s = size / 500;
   return (
-    <View testID="rainthropic-logo" style={{ width: 400 * s, height: 500 * s }}>
+    <View testID="rainly-logo" style={{ width: 400 * s, height: 500 * s }}>
       {RECTS.map(([x, y, w, h], i) => (
         <View
           key={i}

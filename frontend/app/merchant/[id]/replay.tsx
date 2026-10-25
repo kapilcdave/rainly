@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,17 +27,24 @@ export default function Replay() {
 
   const merchant = useQuery({ queryKey: ["merchant", id], queryFn: () => api<Merchant>(`/merchants/${id}`) });
   const city = merchant.data?.city;
-  const list = useQuery({ queryKey: ["replay", city], enabled: !!city, queryFn: () => api<{ items: Item[] }>(`/replay?city=${encodeURIComponent(city!)}`) });
+  const list = useQuery({ queryKey: ["replay", city], enabled: !!city, queryFn: () => api<{ items: Item[]; recommended: Partial<Record<"yes" | "no", string>> }>(`/replay?city=${encodeURIComponent(city!)}`) });
 
   const [result, setResult] = useState<"yes" | "no">("yes");
   const [ticker, setTicker] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [run, setRun] = useState(0);
+  const chipScroll = useRef<ScrollView>(null);
+  const chipX = useRef<Record<string, number>>({});
+  const scrollToChip = (t: string | null) => {
+    const x = t ? chipX.current[t] : undefined;
+    if (x !== undefined) chipScroll.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+  };
+  useEffect(() => scrollToChip(ticker), [ticker]);
 
   const items = useMemo(() => (list.data?.items || []).filter((i) => i.result === result), [list.data, result]);
   useEffect(() => {
-    setTicker(items[0]?.ticker ?? null);
-  }, [items]);
+    setTicker(list.data?.recommended?.[result] ?? items[0]?.ticker ?? null);
+  }, [items, list.data, result]);
 
   const bookings = 40;
   const detail = useQuery({
@@ -90,32 +97,29 @@ export default function Replay() {
             </Pressable>
           ))}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} style={{ height: 56, flexGrow: 0 }}>
+        <ScrollView ref={chipScroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} style={{ height: 56, flexGrow: 0 }}>
           {list.isLoading ? <ActivityIndicator color={colors.brandPrimary} /> : null}
           {!list.isLoading && items.length === 0 ? <Text style={styles.caption}>No settled dates found</Text> : null}
           {items.map((i) => (
-            <Pressable key={i.ticker} testID={`replay-date-${i.date}`} onPress={() => setTicker(i.ticker)} style={[styles.chip, ticker === i.ticker && styles.chipOn]}>
+            <Pressable key={i.ticker} testID={`replay-date-${i.date}`} onLayout={(e) => { chipX.current[i.ticker] = e.nativeEvent.layout.x; if (i.ticker === ticker) scrollToChip(i.ticker); }} onPress={() => setTicker(i.ticker)} style={[styles.chip, ticker === i.ticker && styles.chipOn]}>
               <Text style={[styles.chipText, ticker === i.ticker && { color: colors.onBrandSecondary }]}>{niceDate(i.date)}</Text>
             </Pressable>
           ))}
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: insets.bottom + 24, gap: 0 }}>
         {detail.isLoading ? <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: 40 }} /> : null}
         {detail.isError ? <Text style={styles.caption}>Failed to load replay data.</Text> : null}
         {d ? (
           <>
             <View style={styles.setup} testID="replay-setup">
               <Text style={styles.setupText}>
-                {d.would_offer ? "" : "Hypothetical — "}
-                {merchant.data?.name}: {d.bookings} bookings × {money(d.booking_value, 0)} on {niceDate(d.date)}. Rain chance at listing{" "}
-                <Text style={{ fontFamily: fonts.bodyBold }}>{pct(d.entry_p)}</Text> → refund priced {money(d.price_each)} each.
+                {d.bookings} bookings × {money(d.booking_value, 0)} · <Text style={{ fontFamily: fonts.bodyBold }}>{pct(d.entry_p)}</Text> rain chance at listing
               </Text>
-              <Text style={styles.caption}>Entry price: {d.entry_source}</Text>
               {!d.would_offer ? (
                 <Text style={[styles.caption, { color: colors.warningText }]} testID="replay-not-offered-note">
-                  Above the 60% cap — in reality Rainthropic would have shown &quot;High rain risk&quot; and sold no refunds that day. Numbers below show what would have happened if it had.
+                  Above the 60% cap — Rainly wouldn&apos;t have sold refunds this day.
                 </Text>
               ) : null}
             </View>
@@ -154,11 +158,10 @@ export default function Replay() {
                   Fees {money(d.premiums)} − hedge {money(d.hedge_cost)}
                   {rained ? ` − refunds ${money(d.refunds)} + payout ${money(d.payout)}` : ""}
                 </Text>
-                <Text style={[styles.caption, { marginTop: 8 }]}>{d.rules_primary}</Text>
               </Animated.View>
             ) : null}
 
-            <Btn testID="replay-run-again-button" label="Replay animation" icon="refresh" variant="secondary" onPress={() => setRun((r) => r + 1)} />
+            <Btn testID="replay-run-again-button" label="Replay animation" icon="refresh" variant="secondary" onPress={() => setRun((r) => r + 1)} style={{ marginTop: 20 }} />
           </>
         ) : null}
       </ScrollView>
@@ -168,25 +171,25 @@ export default function Replay() {
 
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
-  sticky: { backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border, paddingTop: 12 },
-  seg: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
-  segOpt: { flex: 1, height: 44, borderRadius: 999, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
-  segOn: { backgroundColor: c.brandPrimary },
+  sticky: { backgroundColor: c.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border, paddingTop: 12 },
+  seg: { flexDirection: "row", gap: 8, paddingHorizontal: 24 },
+  segOpt: { flex: 1, height: 40, borderRadius: 999, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
+  segOn: { backgroundColor: c.onSurface },
   segText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
-  chipRow: { gap: 8, paddingHorizontal: 16, alignItems: "center" },
+  chipRow: { gap: 8, paddingHorizontal: 24, alignItems: "center" },
   chip: { flexShrink: 0, height: 36, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, justifyContent: "center" },
   chipOn: { backgroundColor: c.brandSecondary, borderColor: c.brandPrimary },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
   caption: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: c.muted },
-  setup: { padding: 14, borderRadius: 16, backgroundColor: c.surfaceTertiary, gap: 4 },
-  setupText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.onSurfaceTertiary },
-  step: { flexDirection: "row", gap: 12, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface },
-  stepDone: { borderColor: c.brandSecondary, backgroundColor: c.brandTertiary },
-  stepGood: { borderColor: c.success, backgroundColor: c.successSoft },
-  stepIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
-  stepTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.onSurface },
-  stepBig: { fontFamily: fonts.display, fontSize: 32, color: c.onSurface, marginTop: 2 },
-  net: { padding: 16, borderRadius: 20, backgroundColor: c.surfaceSecondary },
-  netLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
-  netBig: { fontFamily: fonts.display, fontSize: 40 },
+  setup: { gap: 4, paddingBottom: 8 },
+  setupText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: c.onSurfaceSecondary },
+  step: { flexDirection: "row", gap: 14, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  stepDone: {},
+  stepGood: {},
+  stepIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
+  stepTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.onSurfaceSecondary },
+  stepBig: { fontFamily: fonts.display, fontSize: 30, color: c.onSurface, marginTop: 2 },
+  net: { paddingVertical: 20, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.border },
+  netLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: c.muted, textTransform: "uppercase", letterSpacing: 0.8 },
+  netBig: { fontFamily: fonts.display, fontSize: 48, letterSpacing: -1.5 },
 }));

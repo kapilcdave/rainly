@@ -1,4 +1,4 @@
-# Rainthropic API regression tests (ticker, cities, meta, quote, merchants, dashboard, guarantees, replay)
+# Rainly API regression tests (ticker, cities, meta, quote, merchants, dashboard, guarantees, replay)
 import math
 import os
 import pytest
@@ -41,7 +41,7 @@ def test_cities(s):
 
 def test_meta(s):
     d = s.get(f"{API}/meta", timeout=30).json()
-    assert d["mode"] == "mock" and d["max_p"] == 0.6
+    assert d["mode"] in ("mock", "kalshi_demo") and d["max_p"] == 0.6
     assert len(d["date_options"]) == 4 and len(d["business_types"]) > 0
     print(d["date_options"])
 
@@ -89,12 +89,12 @@ def test_seed_merchants(merchants):
 def test_create_merchant_and_get(s):
     meta = s.get(f"{API}/meta", timeout=30).json()
     bt = meta["business_types"][0]
-    r = s.post(f"{API}/merchants", json={"name": "TEST_Rainthropic Merchant", "business_type": bt, "city": "Chicago", "avg_booking": 30, "margin_pct": 0}, timeout=30)
+    r = s.post(f"{API}/merchants", json={"name": "TEST_Rainly Merchant", "business_type": bt, "city": "Chicago", "avg_booking": 30, "margin_pct": 0}, timeout=30)
     assert r.status_code == 200, r.text
     m = r.json()
     assert m["id"] and m["margin_pct"] == 0
     g = s.get(f"{API}/merchants/{m['id']}", timeout=30)
-    assert g.status_code == 200 and g.json()["name"] == "TEST_Rainthropic Merchant"
+    assert g.status_code == 200 and g.json()["name"] == "TEST_Rainly Merchant"
 
 
 def test_create_merchant_invalid_type(s):
@@ -132,7 +132,8 @@ def test_create_guarantee_chicago_increments(s, merchants):
     r = s.post(f"{API}/guarantees", json={"merchant_id": mid, "customer_name": "TEST_guest", "booking_value": 45, "kind": "weekend"}, timeout=60)
     assert r.status_code == 200, r.text
     d = r.json()
-    assert d["order"]["mode"] == "mock" and d["order"]["count"] == 45 and d["order"]["status"] == "filled"
+    assert d["order"]["mode"] in ("mock", "kalshi_demo") and d["order"]["count"] == 45
+    assert d["order"]["status"] in ("filled", "resting") or d["order"]["status"].startswith("partial")
     after = s.get(f"{API}/merchants/{mid}/dashboard", timeout=60).json()
     assert after["stats"]["guarantees_sold"] == before["stats"]["guarantees_sold"] + 1
     assert after["orders"][0]["guarantee_id"] == d["guarantee"]["id"]

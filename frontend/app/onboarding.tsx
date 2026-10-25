@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { FlatList, Modal, Pressable, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
@@ -20,10 +20,12 @@ export default function Onboarding() {
   const qc = useQueryClient();
   const cities = useQuery({ queryKey: ["cities"], queryFn: () => api<{ cities: string[] }>("/cities") });
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState("patio_restaurant");
+  const params = useLocalSearchParams<{ brand?: string; type?: string; avg?: string }>();
+  const [name, setName] = useState(params.brand ?? "");
+  const [contactEmail, setContactEmail] = useState("");
+  const [type, setType] = useState(params.type ?? "patio_restaurant");
   const [city, setCity] = useState("");
-  const [avg, setAvg] = useState("40");
+  const [avg, setAvg] = useState(params.avg ?? "40");
   const [margin, setMargin] = useState(20);
   const [picker, setPicker] = useState(false);
   const [search, setSearch] = useState("");
@@ -49,7 +51,7 @@ export default function Onboarding() {
     try {
       const m = await api<Merchant>("/merchants", {
         method: "POST",
-        body: JSON.stringify({ name: name.trim(), business_type: type, city, avg_booking: v, margin_pct: margin }),
+        body: JSON.stringify({ name: name.trim(), business_type: type, city, avg_booking: v, margin_pct: margin, contact_email: contactEmail.trim() || null, brand: params.brand || null }),
       });
       qc.invalidateQueries({ queryKey: ["merchants"] });
       router.replace(`/merchant/${m.id}`);
@@ -62,7 +64,7 @@ export default function Onboarding() {
 
   return (
     <View style={styles.root}>
-      <Header title="Set up your business" subtitle="Takes 30 seconds" fallback="/merchants" />
+      <Header title={params.brand ? "Add a location" : "Set up your business"} subtitle={params.brand ? params.brand : "Takes 30 seconds"} fallback="/merchants" />
       <KeyboardAwareScrollView bottomOffset={96} contentContainerStyle={{ padding: 20, paddingBottom: 120, gap: 24 }}>
         <View>
           <Text style={styles.label}>Business name</Text>
@@ -119,6 +121,22 @@ export default function Onboarding() {
         </View>
 
         <View>
+          <Text style={styles.label}>Email for rain alerts (optional)</Text>
+          <TextInput
+            testID="onboarding-contact-email-input"
+            value={contactEmail}
+            onChangeText={setContactEmail}
+            placeholder="you@business.com"
+            placeholderTextColor={colors.muted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+          <Text style={styles.hint}>We&apos;ll email you when your city&apos;s rain chance jumps — a good day to promote refunds.</Text>
+        </View>
+
+        <View>
           <Text style={styles.label}>Your pricing</Text>
           <View style={styles.seg}>
             {[
@@ -132,15 +150,15 @@ export default function Onboarding() {
             ))}
           </View>
         </View>
-        {apiError ? (
-          <Text style={styles.err} testID="onboarding-error">
-            {apiError}
-          </Text>
-        ) : null}
       </KeyboardAwareScrollView>
 
       <KeyboardStickyView offset={{ closed: 0, opened: insets.bottom }}>
         <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
+          {apiError ? (
+            <Text style={[styles.err, { marginTop: 0, marginBottom: 8 }]} testID="onboarding-error">
+              {apiError}
+            </Text>
+          ) : null}
           <Btn testID="onboarding-submit-button" label="Create & open dashboard" loading={saving} onPress={submit} />
         </View>
       </KeyboardStickyView>

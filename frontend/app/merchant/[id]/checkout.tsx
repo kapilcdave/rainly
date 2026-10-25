@@ -9,9 +9,10 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import { api, DateOption, Merchant, Quote } from "@/src/api";
 import { makeStyles, useTheme } from "@/src/theme";
-import { BUSINESS_LABELS, fonts, money, pct } from "@/src/format";
+import { fonts, money, pct } from "@/src/format";
 import { Header } from "@/src/components/Header";
 import { Btn } from "@/src/components/Btn";
+import { Disclosure } from "@/src/components/Disclosure";
 
 type Result = { guarantee: any; order: { count: number; price: number; mode: string; status: string; note?: string; ticker: string } };
 
@@ -66,6 +67,8 @@ export default function Checkout() {
     setError("");
     if (!on) {
       setResult({ guarantee: null, order: null as any });
+      // Only count it as "declined" when a refund was actually on offer.
+      if (available) api("/checkouts/declined", { method: "POST", body: JSON.stringify({ merchant_id: id }) }).catch(() => {});
       return;
     }
     const em = email.trim();
@@ -99,7 +102,7 @@ export default function Checkout() {
   const m = merchant.data;
   return (
     <View style={styles.root}>
-      <Header title="Customer checkout" subtitle="What your customer sees" fallback={`/merchant/${id}`} />
+      <Header title="Checkout" subtitle="Customer view" fallback={`/merchant/${id}`} />
       <KeyboardAwareScrollView ref={scrollRef} bottomOffset={24} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
         {!m || !meta.data ? (
           <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: 40 }} />
@@ -119,13 +122,9 @@ export default function Checkout() {
                       {result.guarantee.customer_email ? ` and we'll email ${result.guarantee.customer_email}.` : "."}
                     </Text>
                     <View style={styles.hedgeBox} testID="checkout-hedge-confirmation">
-                      <Text style={styles.hedgeLabel}>Behind the scenes</Text>
                       <Text style={styles.hedgeText}>
-                        Bought {result.order.count} YES @ {Math.round(result.order.price * 100)}¢ on {result.order.ticker}
-                      </Text>
-                      <Text style={styles.small}>
-                        {result.order.mode === "mock" ? "Mock fill at live ask" : `Kalshi demo · ${result.order.status}`}
-                        {result.order.note ? ` · ${result.order.note}` : ""}
+                        Hedged: {result.order.count} contracts @ {Math.round(result.order.price * 100)}¢ on Kalshi
+                        {result.order.mode === "mock" ? " (simulated)" : ` (Kalshi demo · ${result.order.status})`}
                       </Text>
                     </View>
                   </>
@@ -134,17 +133,15 @@ export default function Checkout() {
                 )}
                 <View style={{ gap: 8, alignSelf: "stretch", marginTop: 16 }}>
                   <Btn testID="checkout-new-booking-button" label="New booking" variant="secondary" onPress={reset} />
+                  {result.guarantee ? (
+                    <Btn testID="checkout-view-coverage-button" label="Check my coverage" icon="umbrella-outline" onPress={() => router.push(`/coverage/${result.guarantee.id}`)} />
+                  ) : null}
                   <Btn testID="checkout-to-dashboard-button" label="View dashboard" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/merchant/${id}`))} />
                 </View>
               </Animated.View>
             ) : (
               <Animated.View entering={FadeInDown} style={{ gap: 16 }}>
-                <View>
-                  <Text style={styles.merchant}>{m.name}</Text>
-                  <Text style={styles.small}>
-                    {BUSINESS_LABELS[m.business_type]} · {m.city}
-                  </Text>
-                </View>
+                <Text style={styles.merchant}>{m.name}</Text>
 
                 <View>
                   <Text style={styles.label}>Date</Text>
@@ -157,28 +154,15 @@ export default function Checkout() {
                   </ScrollView>
                 </View>
 
-                <View style={styles.row2}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.label}>Your name</Text>
-                    <TextInput
-                      testID="checkout-customer-input"
-                      value={customer}
-                      onChangeText={setCustomer}
-                      placeholder="Guest"
-                      placeholderTextColor={colors.muted}
-                      style={styles.input}
-                    />
-                  </View>
-                  <View style={{ width: 110 }}>
-                    <Text style={styles.label}>Booking</Text>
-                    <TextInput
-                      testID="checkout-booking-input"
-                      value={value}
-                      onChangeText={setValue}
-                      keyboardType="decimal-pad"
-                      style={[styles.input, { fontFamily: fonts.display }]}
-                    />
-                  </View>
+                <View>
+                  <Text style={styles.label}>Booking total</Text>
+                  <TextInput
+                    testID="checkout-booking-input"
+                    value={value}
+                    onChangeText={setValue}
+                    keyboardType="decimal-pad"
+                    style={[styles.input, { fontFamily: fonts.display }]}
+                  />
                 </View>
 
                 <View style={[styles.widget, on && styles.widgetOn]} testID="rain-refund-widget">
@@ -195,7 +179,7 @@ export default function Checkout() {
                             Rain refund +{money(qd!.price)}
                           </Text>
                           <Text style={styles.widgetSub} testID="rain-chance-text">
-                            Rain chance {pct(qd!.p)} · get {money(bv)} back if it rains
+                            {pct(qd!.p)} chance of rain · full refund if it does
                           </Text>
                         </>
                       ) : (
@@ -216,42 +200,42 @@ export default function Checkout() {
                         disabled={!available}
                         trackColor={{ true: colors.brandPrimary, false: colors.borderStrong }}
                         thumbColor={colors.surface}
+                        {...({ activeThumbColor: colors.surface } as any)}
                       />
                     </Pressable>
                   </View>
-                  {qd?.rules_primary ? (
-                    <Text style={styles.trigger} testID="official-trigger-text">
-                      <Text style={{ fontFamily: fonts.bodyBold }}>Official trigger: </Text>
-                      {qd.rules_primary}
-                    </Text>
-                  ) : null}
                   {on ? (
-                    <Animated.View entering={FadeInDown}>
-                      <Text style={styles.label}>Email for refund alerts</Text>
+                    <Animated.View entering={FadeInDown} style={{ gap: 8 }}>
+                      <TextInput
+                        testID="checkout-customer-input"
+                        value={customer}
+                        onChangeText={setCustomer}
+                        placeholder="Your name"
+                        placeholderTextColor={colors.muted}
+                        style={[styles.input, { backgroundColor: colors.surface }]}
+                      />
                       <TextInput
                         testID="checkout-email-input"
                         value={email}
                         onChangeText={setEmail}
-                        placeholder="you@example.com"
+                        placeholder="Email for refund alerts"
                         placeholderTextColor={colors.muted}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
                         style={[styles.input, { backgroundColor: colors.surface }]}
                       />
-                      <Text style={styles.small}>We&apos;ll email you automatically if it rains.</Text>
                     </Animated.View>
+                  ) : null}
+                  {qd?.rules_primary ? (
+                    <Disclosure label="Official trigger" testID="official-trigger-toggle">
+                      <Text style={styles.trigger} testID="official-trigger-text">
+                        {qd.rules_primary}
+                      </Text>
+                    </Disclosure>
                   ) : null}
                 </View>
 
-                {available && !qd!.depth_ok ? (
-                  <View style={styles.warn} testID="checkout-depth-warning">
-                    <Ionicons name="warning-outline" size={14} color={colors.warningText} />
-                    <Text style={styles.warnText}>
-                      Only {qd!.depth_within_3c} contracts on the book within 3¢ — hedge may fill above the quoted price.
-                    </Text>
-                  </View>
-                ) : null}
 
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total</Text>
@@ -270,18 +254,24 @@ export default function Checkout() {
           </View>
         )}
 
-        {qd?.available ? (
-          <View style={styles.math} testID="pricing-breakdown">
-            <Text style={styles.mathTitle}>How this price is built</Text>
-            <MathRow k="Live YES ask (p)" v={`${Math.round(qd.p! * 100)}¢`} />
-            <MathRow k="Kalshi fee 0.07·p·(1−p)" v={`${(qd.fee_per_contract! * 100).toFixed(2)}¢ / contract`} />
-            <MathRow k="Contracts (ceil of booking)" v={String(qd.contracts)} />
-            <MathRow k="Hedge cost" v={money(qd.hedge_cost)} />
-            <MathRow k={`Merchant margin`} v={`${qd.margin_pct}%`} />
-            <MathRow k="Customer price (min $1)" v={money(qd.price)} bold />
-            <Text style={styles.small}>
-              Same official station data settles the Kalshi contract and triggers the refund — no basis risk.
-            </Text>
+        {qd?.available && !result ? (
+          <View style={styles.math}>
+            <Disclosure label="How is this priced?" testID="pricing-breakdown-toggle">
+              <View style={{ gap: 8 }} testID="pricing-breakdown">
+                <MathRow k="Rain chance (live Kalshi price)" v={`${Math.round(qd.p! * 100)}¢`} />
+                <MathRow k="Contracts to cover the booking" v={String(qd.contracts)} />
+                <MathRow k="Hedge cost incl. Kalshi fee" v={money(qd.hedge_cost)} />
+                <MathRow k="Merchant margin" v={`${qd.margin_pct}%`} />
+                <MathRow k="Customer price" v={money(qd.price)} bold />
+                <Text style={styles.small}>The refund triggers on the same station data the contract settles on.</Text>
+                {!qd.depth_ok ? (
+                  <View style={styles.warn} testID="checkout-depth-warning">
+                    <Ionicons name="warning-outline" size={14} color={colors.warningText} />
+                    <Text style={styles.warnText}>Thin market — the hedge may cost slightly more.</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Disclosure>
           </View>
         ) : null}
       </KeyboardAwareScrollView>
@@ -299,25 +289,16 @@ export default function Checkout() {
 }
 
 const useStyles = makeStyles((c) => ({
-  root: { flex: 1, backgroundColor: c.surfaceSecondary },
+  root: { flex: 1, backgroundColor: c.surface },
   phone: {
     alignSelf: "center",
     width: "100%",
-    maxWidth: 380,
-    borderRadius: 36,
-    borderWidth: 8,
-    borderColor: c.surfaceInverse,
-    backgroundColor: c.surface,
-    padding: 20,
-    paddingTop: 28,
-    shadowColor: c.surfaceInverse,
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    maxWidth: 480,
+    paddingHorizontal: 8,
+    paddingTop: 4,
   },
-  notch: { position: "absolute", top: 8, alignSelf: "center", width: 80, height: 6, borderRadius: 3, backgroundColor: c.borderStrong },
-  merchant: { fontFamily: fonts.display, fontSize: 22, color: c.onSurface },
+  notch: { display: "none" },
+  merchant: { fontFamily: fonts.display, fontSize: 28, color: c.onSurface, letterSpacing: -0.5 },
   small: { fontFamily: fonts.body, fontSize: 12, color: c.muted, marginTop: 2 },
   label: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary, marginBottom: 6 },
   chip: { flexShrink: 0, height: 36, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, justifyContent: "center" },
@@ -325,8 +306,8 @@ const useStyles = makeStyles((c) => ({
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
   row2: { flexDirection: "row", gap: 8 },
   input: { height: 48, borderRadius: 12, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, fontFamily: fonts.body, fontSize: 16, color: c.onSurface, backgroundColor: c.surfaceSecondary },
-  widget: { padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, gap: 10 },
-  widgetOn: { borderColor: c.brandPrimary, backgroundColor: c.surfaceTertiary },
+  widget: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: c.border, gap: 10 },
+  widgetOn: { borderColor: c.brandPrimary, borderWidth: 2, padding: 15 },
   widgetTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   umbrella: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center" },
   toggleArea: { minWidth: 56, minHeight: 48, alignItems: "center", justifyContent: "center" },
@@ -346,7 +327,7 @@ const useStyles = makeStyles((c) => ({
   hedgeBox: { alignSelf: "stretch", padding: 12, borderRadius: 12, backgroundColor: c.surfaceTertiary, marginTop: 16 },
   hedgeLabel: { fontFamily: fonts.bodyBold, fontSize: 11, color: c.onSurfaceTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
   hedgeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceTertiary, marginTop: 4 },
-  math: { marginTop: 20, padding: 16, borderRadius: 20, backgroundColor: c.surface, gap: 8, maxWidth: 380, width: "100%", alignSelf: "center" },
+  math: { marginTop: 8, paddingHorizontal: 8, maxWidth: 480, width: "100%", alignSelf: "center" },
   mathTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.onSurface },
   mathRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   mathK: { fontFamily: fonts.body, fontSize: 13, color: c.muted, flex: 1 },

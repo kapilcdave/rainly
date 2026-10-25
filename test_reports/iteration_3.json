@@ -1,0 +1,30 @@
+{
+  "summary": "Tested the frontend in the browser at 375x667 (Expo web), plus 2 quick backend checks. Everything requested passed. Landing -> Get started -> merchant list shows only Maria's Patio Taqueria and Bayfront Boat Tours, with no Diddy's Den. Maria's dashboard shows same-profit-banner ('Profit, rain or shine', +$27.28, 41 guarantees, 1,845 contracts held). pnl-if-rains and pnl-if-dry show only the net (+$27.28). The See the math, Official trigger and Order book disclosures open and close (5 orderbook-ask rows). Hedge orders shows 3 rows; 'Show all 41' expands to 41. Checkout: the name and email inputs only appear after the toggle is on, and the total goes from $45.00 to $46.15. official-trigger-text and pricing-breakdown (with checkout-depth-warning) expand. An invalid email shows checkout-error 'Enter a valid email address'. A valid confirm shows the success screen 'Hedged: 45 contracts @ 2¢ on Kalshi (simulated)', and New booking resets the form. Bayfront (Miami) shows 'Rain refund unavailable · High rain risk — not offered · rain chance 99%'; the switch is disabled and tapping it does nothing. Replay: YES defaults to Oct 13 (38%, +$142.80) and the chip is scrolled into view; NO defaults to Oct 23 (4%); replay-run-again-button restarts the animation. Backend: /api/ returns app Rainly; /api/replay?city=Chicago returns recommended {yes: KXRAIN-26OCT13-CHI, no: KXRAIN-26OCT23-CHI}. No page errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Dashboard profit hero sign", "issue": "The hero shows `{if_dry.net >= 0 ? '+' : ''}{money(min(if_rains.net, if_dry.net))}`. If the rain net is negative and the dry net is positive, this renders '+-$X.XX'. The sign should come from the value that is displayed. Not visible in the current seed data because both nets are equal. Reference: /app/frontend/app/merchant/[id]/index.tsx:89-90", "testID": "profit-hero", "priority": "MEDIUM"},
+      {"component": "Orderbook rows", "issue": "Asks with size 0 are shown as a row (e.g. '4¢  0'). Consider filtering out size<=0. Reference: index.tsx:158", "testID": "orderbook-ask-1", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Checkout success", "issues": ["The 'How is this priced?' card stays below the success screen (and stays open if it was expanded). Consider hiding it when `result` is set."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_3.json"],
+  "action_items": [
+    "Fix the hero sign: compute v = Math.min(if_rains.net, if_dry.net) and render (v >= 0 ? '+' : '') + money(v) (index.tsx:89-90)",
+    "Optional: hide the pricing breakdown on the checkout success screen; filter out zero-size orderbook asks"
+  ],
+  "critical_code_review_comments": [
+    "index.tsx defines OrderRow, PnLCard and Line inside the component body, so they get a new identity on every render (remount on each 15s refetch). Move them to module scope.",
+    "No deprecated Expo packages found (expo-av, expo-barcode-scanner, expo-background-fetch not used). SafeAreaView comes from react-native-safe-area-context."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (2/2 quick checks)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "Created 1 checkout guarantee (TEST_Checkout, no email) and then deleted it. INCIDENT: my cleanup query matched guarantee_id=None, which deleted every order in db.orders (42 docs). I immediately rebuilt the 41 orders from the 41 remaining guarantees (same merchant_id, guarantee_id, ticker, count=contracts, price=p, fee=round(fee_per_contract*contracts,2), mode=mock, status=filled, note 'Seeded demo booking' for the 40 seeded ones, created_at = guarantee created_at + 5ms). I checked the dashboard after restoring: 41 guarantees, 41 orders, hedge_cost 136.80, premiums 164.08, both nets +$27.28, and the top rows are 45@5¢ $2.40 and 45@7¢ $3.36 — all the same as before. The order _ids are new.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Maria id 6add11451f0373a8576b5b40, Bayfront id 6add11451f0373a8576b5b41. Maria must stay at 41 guarantees. When cleaning up, delete orders by an explicit guarantee_id string (str(_id)); never match on a field that may be None. Avoid email tests (rate-limited)."
+}
