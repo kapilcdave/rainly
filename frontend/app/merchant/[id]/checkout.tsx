@@ -100,7 +100,7 @@ export default function Checkout() {
   const m = merchant.data;
   return (
     <View style={styles.root}>
-      <Header title="Customer checkout" subtitle="What your customer sees" fallback={`/merchant/${id}`} />
+      <Header title="Checkout" subtitle="Customer view" fallback={`/merchant/${id}`} />
       <KeyboardAwareScrollView ref={scrollRef} bottomOffset={24} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}>
         {!m || !meta.data ? (
           <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: 40 }} />
@@ -195,6 +195,7 @@ export default function Checkout() {
                         disabled={!available}
                         trackColor={{ true: colors.brandPrimary, false: colors.borderStrong }}
                         thumbColor={colors.surface}
+                        {...({ activeThumbColor: colors.surface } as any)}
                       />
                     </Pressable>
                   </View>
@@ -283,25 +284,16 @@ export default function Checkout() {
 }
 
 const useStyles = makeStyles((c) => ({
-  root: { flex: 1, backgroundColor: c.surfaceSecondary },
+  root: { flex: 1, backgroundColor: c.surface },
   phone: {
     alignSelf: "center",
     width: "100%",
-    maxWidth: 380,
-    borderRadius: 36,
-    borderWidth: 8,
-    borderColor: c.surfaceInverse,
-    backgroundColor: c.surface,
-    padding: 20,
-    paddingTop: 28,
-    shadowColor: c.surfaceInverse,
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    maxWidth: 480,
+    paddingHorizontal: 8,
+    paddingTop: 4,
   },
-  notch: { position: "absolute", top: 8, alignSelf: "center", width: 80, height: 6, borderRadius: 3, backgroundColor: c.borderStrong },
-  merchant: { fontFamily: fonts.display, fontSize: 22, color: c.onSurface },
+  notch: { display: "none" },
+  merchant: { fontFamily: fonts.display, fontSize: 28, color: c.onSurface, letterSpacing: -0.5 },
   small: { fontFamily: fonts.body, fontSize: 12, color: c.muted, marginTop: 2 },
   label: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary, marginBottom: 6 },
   chip: { flexShrink: 0, height: 36, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, justifyContent: "center" },
@@ -309,8 +301,8 @@ const useStyles = makeStyles((c) => ({
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
   row2: { flexDirection: "row", gap: 8 },
   input: { height: 48, borderRadius: 12, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, fontFamily: fonts.body, fontSize: 16, color: c.onSurface, backgroundColor: c.surfaceSecondary },
-  widget: { padding: 14, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, gap: 10 },
-  widgetOn: { borderColor: c.brandPrimary, backgroundColor: c.surfaceTertiary },
+  widget: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: c.border, gap: 10 },
+  widgetOn: { borderColor: c.brandPrimary, borderWidth: 2, padding: 15 },
   widgetTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   umbrella: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.brandTertiary, alignItems: "center", justifyContent: "center" },
   toggleArea: { minWidth: 56, minHeight: 48, alignItems: "center", justifyContent: "center" },
@@ -330,7 +322,7 @@ const useStyles = makeStyles((c) => ({
   hedgeBox: { alignSelf: "stretch", padding: 12, borderRadius: 12, backgroundColor: c.surfaceTertiary, marginTop: 16 },
   hedgeLabel: { fontFamily: fonts.bodyBold, fontSize: 11, color: c.onSurfaceTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
   hedgeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceTertiary, marginTop: 4 },
-  math: { marginTop: 16, paddingHorizontal: 16, paddingVertical: 4, borderRadius: 20, backgroundColor: c.surface, maxWidth: 380, width: "100%", alignSelf: "center" },
+  math: { marginTop: 8, paddingHorizontal: 8, maxWidth: 480, width: "100%", alignSelf: "center" },
   mathTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.onSurface },
   mathRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   mathK: { fontFamily: fonts.body, fontSize: 13, color: c.muted, flex: 1 },

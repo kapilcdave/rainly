@@ -91,7 +91,7 @@ const useStyles = makeStyles((c) => ({
   card: { width: "100%", maxWidth: 340, padding: 24, borderRadius: 24, backgroundColor: c.surface, alignItems: "center", gap: 12 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   brand: { fontFamily: fonts.display, fontSize: 18, color: c.brandPrimary },
-  title: { fontFamily: fonts.display, fontSize: 22, color: c.onSurface },
+  title: { fontFamily: fonts.display, fontSize: 22, color: c.onSurface, textAlign: "center" },
   qrWrap: { padding: 8, borderRadius: 16, borderWidth: 1, borderColor: c.border },
   qr: { width: 220, height: 220 },
   merchant: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.onSurfaceSecondary },

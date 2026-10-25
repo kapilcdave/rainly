@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -108,7 +108,7 @@ export default function Replay() {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, gap: 12 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: insets.bottom + 24, gap: 0 }}>
         {detail.isLoading ? <ActivityIndicator color={colors.brandPrimary} style={{ marginTop: 40 }} /> : null}
         {detail.isError ? <Text style={styles.caption}>Failed to load replay data.</Text> : null}
         {d ? (
@@ -161,7 +161,7 @@ export default function Replay() {
               </Animated.View>
             ) : null}
 
-            <Btn testID="replay-run-again-button" label="Replay animation" icon="refresh" variant="secondary" onPress={() => setRun((r) => r + 1)} />
+            <Btn testID="replay-run-again-button" label="Replay animation" icon="refresh" variant="secondary" onPress={() => setRun((r) => r + 1)} style={{ marginTop: 20 }} />
           </>
         ) : null}
       </ScrollView>
@@ -171,25 +171,25 @@ export default function Replay() {
 
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
-  sticky: { backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border, paddingTop: 12 },
-  seg: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
-  segOpt: { flex: 1, height: 44, borderRadius: 999, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
-  segOn: { backgroundColor: c.brandPrimary },
+  sticky: { backgroundColor: c.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border, paddingTop: 12 },
+  seg: { flexDirection: "row", gap: 8, paddingHorizontal: 24 },
+  segOpt: { flex: 1, height: 40, borderRadius: 999, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
+  segOn: { backgroundColor: c.onSurface },
   segText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
-  chipRow: { gap: 8, paddingHorizontal: 16, alignItems: "center" },
+  chipRow: { gap: 8, paddingHorizontal: 24, alignItems: "center" },
   chip: { flexShrink: 0, height: 36, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: c.border, justifyContent: "center" },
   chipOn: { backgroundColor: c.brandSecondary, borderColor: c.brandPrimary },
   chipText: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
   caption: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: c.muted },
-  setup: { padding: 14, borderRadius: 16, backgroundColor: c.surfaceTertiary, gap: 4 },
-  setupText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.onSurfaceTertiary },
-  step: { flexDirection: "row", gap: 12, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface },
-  stepDone: { borderColor: c.brandSecondary, backgroundColor: c.brandTertiary },
-  stepGood: { borderColor: c.success, backgroundColor: c.successSoft },
-  stepIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
-  stepTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.onSurface },
-  stepBig: { fontFamily: fonts.display, fontSize: 32, color: c.onSurface, marginTop: 2 },
-  net: { padding: 16, borderRadius: 20, backgroundColor: c.surfaceSecondary },
-  netLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: c.onSurfaceSecondary },
-  netBig: { fontFamily: fonts.display, fontSize: 40 },
+  setup: { gap: 4, paddingBottom: 8 },
+  setupText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: c.onSurfaceSecondary },
+  step: { flexDirection: "row", gap: 14, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  stepDone: {},
+  stepGood: {},
+  stepIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: c.surfaceSecondary },
+  stepTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.onSurfaceSecondary },
+  stepBig: { fontFamily: fonts.display, fontSize: 30, color: c.onSurface, marginTop: 2 },
+  net: { paddingVertical: 20, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.border },
+  netLabel: { fontFamily: fonts.bodySemi, fontSize: 12, color: c.muted, textTransform: "uppercase", letterSpacing: 0.8 },
+  netBig: { fontFamily: fonts.display, fontSize: 48, letterSpacing: -1.5 },
 }));

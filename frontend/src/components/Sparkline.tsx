@@ -16,9 +16,8 @@ export function Sparkline({ data, color, height = 24, testID }: { data: number[]
           style={{
             flex: 1,
             height: Math.max(2, ((v - base) / range) * height),
-            borderRadius: 1,
             backgroundColor: color,
-            opacity: 0.35 + 0.65 * ((i + 1) / data.length),
+            opacity: i === data.length - 1 ? 1 : 0.28,
           }}
         />
       ))}

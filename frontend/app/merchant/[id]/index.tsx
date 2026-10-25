@@ -1,4 +1,4 @@
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -67,11 +67,9 @@ export default function Dashboard() {
         subtitle={`${BUSINESS_LABELS[d.merchant.business_type]} · ${d.merchant.city}`}
         fallback="/merchants"
         right={
-          <View style={[styles.badge, d.mode === "mock" ? styles.badgeMock : styles.badgeLive]} testID="trading-mode-badge">
-            <Text style={[styles.badgeText, { color: d.mode === "mock" ? colors.warningText : colors.successText }]}>
-              {d.mode === "mock" ? "Mock fills" : "Kalshi demo"}
-            </Text>
-          </View>
+          <Text style={[styles.badgeText, { color: d.mode === "mock" ? colors.warningText : colors.successText }]} testID="trading-mode-badge">
+            {d.mode === "mock" ? "Simulated" : "Kalshi demo"}
+          </Text>
         }
       />
       <ScrollView
@@ -79,26 +77,17 @@ export default function Dashboard() {
         refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={q.refetch} />}
       >
         <View style={styles.pad}>
-          <Btn testID="open-checkout-button" label="Checkout widget" icon="phone-portrait-outline" onPress={() => router.push(`/merchant/${id}/checkout`)} />
-          <View style={styles.actions}>
-            <Btn testID="open-replay-button" label="Replay" icon="play-outline" variant="secondary" onPress={() => router.push(`/merchant/${id}/replay`)} style={{ flex: 1 }} />
-            <Btn testID="open-share-button" label="Share link" icon="qr-code-outline" variant="secondary" onPress={() => router.push(`/merchant/${id}/share`)} style={{ flex: 1 }} />
-          </View>
-
-          <Animated.View entering={FadeInDown} style={styles.hero} testID={same ? "same-profit-banner" : "profit-hero"}>
-            <Text style={styles.heroLabel}>{same ? "Profit, rain or shine" : "Profit on open bookings"}</Text>
-            <Text style={styles.heroBig}>
+          <Animated.View entering={FadeInDown} testID={same ? "same-profit-banner" : "profit-hero"} style={{ paddingTop: 8 }}>
+            <Text style={styles.label}>{same ? "Profit, rain or shine" : "Profit on open bookings"}</Text>
+            <Text style={[styles.bigNum, { color: worst >= 0 ? colors.onSurface : colors.error }]}>
               {worst >= 0 ? "+" : ""}
               {money(worst)}
             </Text>
-            <View style={styles.heroStats}>
-              <Text style={styles.heroStat} testID="metric-guarantees">
-                <Text style={styles.heroStatNum}>{d.stats.guarantees_sold}</Text> guarantees
-              </Text>
-              <Text style={styles.heroStat} testID="metric-contracts">
-                <Text style={styles.heroStatNum}>{d.stats.contracts_held.toLocaleString()}</Text> contracts held
-              </Text>
-            </View>
+            <Text style={styles.sub}>
+              <Text testID="metric-guarantees">{d.stats.guarantees_sold} bookings covered</Text>
+              {" · "}
+              <Text testID="metric-contracts">{d.stats.contracts_held.toLocaleString()} contracts</Text>
+            </Text>
           </Animated.View>
           {d.stats.refunded + d.stats.expired > 0 ? (
             <Text style={styles.caption} testID="settled-summary">
@@ -107,15 +96,15 @@ export default function Dashboard() {
           ) : null}
 
           {d.stats.active === 0 ? (
-            <View style={styles.empty} testID="dashboard-empty">
-              <Ionicons name="sunny-outline" size={24} color={colors.warningText} />
-              <Text style={styles.body}>No open guarantees yet. Sell your first one from the checkout.</Text>
-            </View>
+            <Text style={[styles.sub, { marginTop: 8 }]} testID="dashboard-empty">
+              No open bookings yet. Sell your first rain refund from the checkout.
+            </Text>
           ) : (
             <>
-              <View style={styles.metrics}>
-                <PnLCard title="If it rains" icon="rainy-outline" p={d.pnl.if_rains} testID="pnl-if-rains" />
-                <PnLCard title="If it doesn't" icon="sunny-outline" p={d.pnl.if_dry} testID="pnl-if-dry" />
+              <View style={styles.split}>
+                <Cell label="If it rains" value={`${d.pnl.if_rains.net >= 0 ? "+" : ""}${money(d.pnl.if_rains.net)}`} testID="pnl-if-rains" />
+                <View style={styles.vline} />
+                <Cell label="If it's dry" value={`${d.pnl.if_dry.net >= 0 ? "+" : ""}${money(d.pnl.if_dry.net)}`} testID="pnl-if-dry" />
               </View>
               <Disclosure label="See the math" testID="pnl-math-toggle">
                 <View style={styles.mathBox}>
@@ -128,27 +117,28 @@ export default function Dashboard() {
             </>
           )}
 
-          <Text style={styles.h2}>This weekend in {d.merchant.city}</Text>
-          <View style={styles.card} testID="live-market-card">
-            <View style={styles.rowBetween}>
-              <View>
-                <Text style={styles.caption}>Rain chance</Text>
-                <Text style={styles.huge} testID="live-yes-ask">
-                  {live.yes_ask !== undefined ? pct(live.yes_ask) : "—"}
-                </Text>
-              </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.caption}>Refund on a {money(d.merchant.avg_booking, 0)} booking</Text>
-                <Text style={styles.priceBig} testID="live-refund-price">
-                  {live.available ? money(live.price) : live.reason}
-                </Text>
-              </View>
+          <View style={[styles.list, { marginTop: 8 }]}>
+            <ActionRow icon="phone-portrait-outline" title="Open checkout" sub="What your customers see" testID="open-checkout-button" to={`/merchant/${id}/checkout`} />
+            <ActionRow icon="qr-code-outline" title="Share checkout link" sub="QR code for your counter or site" testID="open-share-button" to={`/merchant/${id}/share`} />
+            <ActionRow icon="play-outline" title="Settlement replay" sub="See a real rainy day play out" testID="open-replay-button" to={`/merchant/${id}/replay`} last />
+          </View>
+
+          <Text style={[styles.label, styles.sectionGap]}>This weekend · {d.merchant.city}</Text>
+          <View testID="live-market-card">
+            <View style={styles.split}>
+              <Cell label="Chance of rain" value={live.yes_ask !== undefined ? pct(live.yes_ask) : "—"} testID="live-yes-ask" />
+              <View style={styles.vline} />
+              <Cell
+                label={`Refund on ${money(d.merchant.avg_booking, 0)}`}
+                value={live.available ? money(live.price) : live.reason || "—"}
+                testID="live-refund-price"
+                small={!live.available}
+              />
             </View>
             {live.available && !live.depth_ok ? (
-              <View style={styles.warn} testID="depth-warning">
-                <Ionicons name="warning-outline" size={16} color={colors.warningText} />
-                <Text style={styles.warnText}>Thin order book — hedges may fill a little above this price.</Text>
-              </View>
+              <Text style={[styles.caption, { color: colors.warningText }]} testID="depth-warning">
+                Thin order book — hedges may fill slightly above this price.
+              </Text>
             ) : null}
             {live.rules_primary ? (
               <Disclosure label="Official trigger" testID="live-trigger-toggle">
@@ -168,8 +158,8 @@ export default function Dashboard() {
             </Disclosure>
           </View>
 
-          <Text style={styles.h2}>Hedge orders</Text>
-          <View style={styles.card} testID="hedge-order-log">
+          <Text style={[styles.label, styles.sectionGap]}>Hedge orders · {d.orders.length}</Text>
+          <View testID="hedge-order-log">
             {d.orders.length === 0 ? <Text style={styles.caption}>No hedge orders yet.</Text> : null}
             {d.orders.slice(0, 3).map((o, i) => (
               <OrderRow key={o.id} o={o} i={i} />
@@ -200,19 +190,27 @@ export default function Dashboard() {
     );
   }
 
-  function PnLCard({ title, icon, p, testID }: { title: string; icon: string; p: PnL; testID: string }) {
-    const pos = p.net >= 0;
+  function Cell({ label, value, testID, small }: { label: string; value: string; testID: string; small?: boolean }) {
     return (
-      <View style={styles.metric} testID={testID}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Ionicons name={icon as any} size={16} color={colors.onSurfaceSecondary} />
-          <Text style={styles.cardTitle}>{title}</Text>
-        </View>
-        <Text style={[styles.value, { color: pos ? colors.successText : colors.error }]}>
-          {pos ? "+" : ""}
-          {money(p.net)}
+      <View style={styles.cell} testID={testID}>
+        <Text style={styles.cellLabel}>{label}</Text>
+        <Text style={small ? styles.cellSmall : styles.cellValue} numberOfLines={2}>
+          {value}
         </Text>
       </View>
+    );
+  }
+
+  function ActionRow({ icon, title, sub, testID, to, last }: { icon: string; title: string; sub: string; testID: string; to: string; last?: boolean }) {
+    return (
+      <Pressable testID={testID} onPress={() => router.push(to as any)} style={({ pressed }) => [styles.actionRow, !last && styles.divider, pressed && { opacity: 0.6 }]}>
+        <Ionicons name={icon as any} size={20} color={colors.brandPrimary} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.actionTitle}>{title}</Text>
+          <Text style={styles.caption}>{sub}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
     );
   }
 
@@ -228,7 +226,20 @@ export default function Dashboard() {
 
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
-  pad: { padding: 16, gap: 12 },
+  pad: { paddingHorizontal: 24, paddingTop: 16, gap: 8 },
+  label: { fontFamily: fonts.bodySemi, fontSize: 12, color: c.muted, textTransform: "uppercase", letterSpacing: 0.8 },
+  bigNum: { fontFamily: fonts.display, fontSize: 56, letterSpacing: -2, marginTop: 4 },
+  sub: { fontFamily: fonts.body, fontSize: 15, color: c.onSurfaceSecondary },
+  sectionGap: { marginTop: 32 },
+  split: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.border, paddingVertical: 14, marginTop: 16 },
+  vline: { width: StyleSheet.hairlineWidth, backgroundColor: c.border, marginHorizontal: 16 },
+  cell: { flex: 1, gap: 4 },
+  cellLabel: { fontFamily: fonts.body, fontSize: 13, color: c.muted },
+  cellValue: { fontFamily: fonts.display, fontSize: 26, color: c.onSurface },
+  cellSmall: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.warningText },
+  list: { marginTop: 24, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.border },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 64 },
+  actionTitle: { fontFamily: fonts.bodySemi, fontSize: 16, color: c.onSurface },
   actions: { flexDirection: "row", gap: 8 },
   metrics: { flexDirection: "row", gap: 12 },
   metric: { flex: 1, padding: 14, borderRadius: 16, backgroundColor: c.surfaceSecondary, gap: 4 },
@@ -251,8 +262,8 @@ const useStyles = makeStyles((c) => ({
   bookBar: { position: "absolute", left: 0, top: 2, bottom: 2, borderRadius: 6 },
   bookPrice: { fontFamily: fonts.display, fontSize: 14, color: c.onSurface, width: 48 },
   bookSize: { flex: 1, textAlign: "right", fontFamily: fonts.displayMd, fontSize: 13, color: c.onSurfaceSecondary },
-  orderRow: { flexDirection: "row", gap: 8, paddingVertical: 10 },
-  divider: { borderTopWidth: 1, borderTopColor: c.divider },
+  orderRow: { flexDirection: "row", gap: 8, paddingVertical: 12 },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   orderMain: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.onSurface },
   demoTag: { fontFamily: fonts.bodySemi, fontSize: 11, color: c.successText },
   lineK: { fontFamily: fonts.body, fontSize: 13, color: c.onSurfaceSecondary },
