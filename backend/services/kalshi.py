@@ -16,6 +16,7 @@ from core import (db, http, logger, ET, KALSHI_PUBLIC, KALSHI_DEMO, MOCK_TRADING
                   KALSHI_PRIVATE_KEY_PEM, KALSHI_LIVE_TRADING, KALSHI_PROD_ACCESS_KEY, KALSHI_PROD_PRIVATE_KEY_PEM,
                   DAILY_HEDGE_CAP, MAX_P, DEPTH_SLIPPAGE, now_iso)
 from models import HedgeOrder
+from services import kalshi_ws
 
 _cache: dict[str, tuple[float, Any]] = {}
 
@@ -126,6 +127,10 @@ def f(v) -> float:
 
 
 async def orderbook(ticker: str) -> dict:
+    live = kalshi_ws.book(ticker)
+    if live is not None:
+        return live
+    kalshi_ws.watch(ticker)
     data = await kget(f"/markets/{ticker}/orderbook", ttl=10) or {}
     ob = data.get("orderbook_fp") or {}
     yes_bids = [(f(p), f(s)) for p, s in (ob.get("yes_dollars") or [])]
@@ -161,8 +166,12 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
     if not m:
         return {**base, "reason": f"{city} not listed for this date"}
     p = f(m.get("yes_ask_dollars"))
+    live = kalshi_ws.book(m["ticker"])
+    if live is not None:  # streamed book beats the cached REST snapshot
+        p = live["asks"][0][0] if live["asks"] else 0.0
     info = {
         **base,
+        "price_source": "stream" if live is not None else "rest",
         "ticker": m["ticker"],
         "title": m.get("title"),
         "rules_primary": m.get("rules_primary"),
@@ -187,7 +196,7 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
         est = q["contracts"] * min(0.99, p + DEPTH_SLIPPAGE) * 1.07 + 0.01  # worst-case fill incl. fees
         if spent + est > DAILY_HEDGE_CAP:
             return {**info, **q, "reason": "Today's hedge budget is used up — back tomorrow"}
-    ob = await orderbook(m["ticker"])
+    ob = live or await orderbook(m["ticker"])
     limit = p + DEPTH_SLIPPAGE + 1e-9
     depth = sum(s for a, s in ob["asks"] if a <= limit)
     if trading_mode() == "kalshi_live" and depth < q["contracts"]:  # a real hedge would not fill

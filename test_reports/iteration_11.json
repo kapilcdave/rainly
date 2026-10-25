@@ -1,0 +1,37 @@
+{
+  "summary": "Read-only check of the Kalshi WebSocket order-book stream, done in REAL kalshi_live mode. No POST /api/guarantees was sent (Playwright route guard: 0 blocked), the confirm button was never tapped, and the DB still has 0 kalshi_live orders and 41 guarantees. Backend: /api/meta stream shows connected=true, markets=10, last_update_s between 0.1 and 5. Chicago weekend 2026-10-24 quotes have price_source='stream'. $7 is available (p=0.07, price $1.00, depth 8-13). $45 is unavailable with 'Not enough sellers on Kalshi right now'. A 75s monitor of /api/meta + /api/quote every 3s saw 23/23 samples connected and 'stream' every time. backend.err.log shows exactly one 'Kalshi stream connected' per backend restart and 0 'dropped' or 'gap' lines. The stream stayed on one connection for more than 5 min, so it is not churning. The dashboard order book matches Kalshi REST (best ask/bid within 2c, price levels overlap). Raw WS probe: an unknown or settled ticker in the subscription gets an empty orderbook_snapshot and does not break the other subscriptions. Pytest: test_iter11_ws_stream.py + test_iter10_live_hardening.py + test_email_retry.py = 25/25 passed. Frontend at 375x667, 0 page errors. Landing polls /api/ticker every 3.1s and shows sparklines and changes. Dashboard polls every ~5s and shows 'Live on Kalshi'. Checkout polls /quote every ~3s. At $45 it shows 'Rain refund unavailable' and the toggle is off. At $7 it shows +$1.00 and the toggle gives a total of $8.00. The toggle stayed ON across 4 refetches (no flicker), and switching it off returns the total to $7.00.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "services/kalshi_ws.py run()", "issue": "_watch only ever grows (_watch.update(_wanted()) plus watch()). Settled daily/weekend tickers stay subscribed forever. Harmless today because Kalshi sends an empty snapshot for them, but the list grows without bound."},
+      {"endpoint": "services/kalshi_ws.py _session()", "issue": "Race: _resubscribe.clear() runs after connect. If watch() adds a ticker while _wanted() or connect is in flight, its event is cleared and that ticker is not streamed until the next 10-min refresh. REST fallback covers it."},
+      {"endpoint": "services/kalshi_ws.py watch()", "issue": "Each newly watched ticker forces a full reconnect and _books.clear(). For ~1-5s every market falls back to REST (price_source='rest'). The same happens on every forced 10-min refresh (wait_for timeout=REFRESH_SECONDS*2). Consider subscribing incrementally with the 'update_subscription' or a second 'subscribe' command instead of reconnecting."},
+      {"endpoint": "GET /api/quote", "issue": "yes_ask comes from the stream but yes_bid, last_price and volume still come from the cached REST event, which can be up to 15s old. Small inconsistency."},
+      {"endpoint": "POST /api/guarantees (code review only, not called)", "issue": "The server re-quotes at POST time. Prices now move every 3s, so the charged price can differ from what the customer saw. Consider sending the expected price from the client and rejecting the POST if it has moved past a tolerance."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter11_ws_stream.py", "/app/test_reports/pytest/pytest_iter11.xml"],
+  "action_items": [
+    "Optional: prune _watch to the _wanted() set (plus recently requested tickers) on each refresh",
+    "Optional: add tickers to the live socket without reconnecting, and avoid clearing all books on the scheduled 10-min refresh",
+    "Optional: pass the client-seen price on POST /api/guarantees and reject it if the price has moved"
+  ],
+  "critical_code_review_comments": [
+    "kalshi_ws.book() treats a book as live whenever connected=True. connected is set right after subscribe is sent, before snapshots arrive. Tickers without a snapshot correctly fall back to REST.",
+    "Seq-gap detection relies on a single sid, which holds because there is one subscribe command. If more subscribe commands are added later, track seq per sid.",
+    "uvicorn --reload watches /app/backend including tests/. Writing a test file restarts the backend and drops the stream for ~5s (this caused one transient test failure during this run)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter11_ws_stream.py"],
+  "success_rate": {"backend": "100% (25/25)", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "REAL kalshi_live mode. Never POST /api/guarantees and never tap checkout-confirm-button with the toggle on; use a page.route abort guard. The env date is 2026-10-25. The Chicago weekend market is KXRAINWKND-26OCT24-CHI, about 7%, with depth within 3c of about 8-13, so $7 is available and $45 is unavailable. The EXPO_PUBLIC_BACKEND_URL env var holds the public URL. Writing files under /app/backend restarts the backend (reload), so wait about 5s before checking stream.connected. /tmp/stream_monitor.py and /tmp/ws_probe_t1.py are helper scripts. The main agent's /tmp/ws_probe.py was left untouched.",
+  "rca_of_issue": ""
+}

@@ -8,7 +8,8 @@ import qrcode
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
-from core import MAX_P, MOCK_TRADING, TICKER_CITIES, BUSINESS_TYPES
+from core import MAX_P, TICKER_CITIES, BUSINESS_TYPES
+from services import kalshi_ws
 from services.kalshi import (build_quote, check_kind, date_options, entry_price, event_ticker, f, find_market,
                              get_event_markets, history_24h, kget, parse_code, parse_day, price_quote,
                              settled_markets, today_et, trading_mode, weekend_saturday)
@@ -31,6 +32,7 @@ async def meta():
             ms = None
         o["open"] = bool(ms) and any(m.get("status") in ("active", "open") for m in ms)
     return {"mode": trading_mode(), "mock_trading": trading_mode() == "mock", "max_p": MAX_P,
+            "stream": kalshi_ws.status(),
             "business_types": BUSINESS_TYPES, "date_options": opts}
 
 
@@ -50,6 +52,9 @@ async def ticker():
         m = find_market(markets or [], c)
         prev = f(m.get("previous_yes_ask_dollars")) if m else 0
         p_now = f(m.get("yes_ask_dollars")) if m else 0
+        live = kalshi_ws.book(m["ticker"]) if m else None
+        if live and live["asks"]:
+            p_now = live["asks"][0][0]
         out.append({"city": c, "p": p_now if m else None,
                     "change": round((p_now - prev) * 100) if m and prev > 0 else None,  # points vs ~24h ago
                     "history": await history_24h(m) if m else [],

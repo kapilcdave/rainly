@@ -25,7 +25,7 @@ export default function Landing() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const ticker = useQuery({ queryKey: ["ticker"], queryFn: () => api<Ticker>("/ticker"), refetchInterval: 20000 });
+  const ticker = useQuery({ queryKey: ["ticker"], queryFn: () => api<Ticker>("/ticker"), refetchInterval: 3000 });
 
   return (
     <View style={styles.root}>

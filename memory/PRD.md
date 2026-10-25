@@ -49,3 +49,9 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Orders: fill-or-kill at live ask + 3¢ on api.elections.kalshi.com; failed hedge → booking deleted, 409. Lock serializes live orders; DAILY_HEDGE_CAP=$10/ET day (worst-case cost checked in quote and inside the lock). Lost-connection orders recorded as status "unknown" with worst-case cost.
 - Quote unavailable in live mode when orderbook depth < contracts ("Not enough sellers on Kalshi right now").
 - No real test order placed (user declined).
+
+## Kalshi WebSocket stream (Jun 2026)
+- services/kalshi_ws.py: one authenticated WS (prod key) to wss://api.elections.kalshi.com/trade-api/ws/v2, channel orderbook_delta for all open markets in merchant + ticker cities (this weekend, today, tomorrow). In-memory books; seq-gap → reconnect for fresh snapshots; reconnect backoff; market list refreshed every 5 min or when a new ticker is requested.
+- Quotes/hedges/landing ticker use streamed best ask + depth (quote.price_source = "stream"), REST fallback while stream is down. /api/meta.stream shows status.
+- Frontend polling: landing ticker 3s, checkout quote 3s, dashboard 5s.
+- Checkout sends expected_price; server returns 409 if the refund price rose before placing the hedge.

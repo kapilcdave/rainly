@@ -52,7 +52,7 @@ export default function Checkout() {
   const quote = useQuery({
     queryKey: ["quote", merchant.data?.city, dateOpt?.kind, dateOpt?.date, bv, merchant.data?.margin_pct],
     enabled: !!merchant.data && !!dateOpt && bv > 0,
-    refetchInterval: 15000,
+    refetchInterval: 3000,
     queryFn: () =>
       api<Quote>(
         `/quote?city=${encodeURIComponent(merchant.data!.city)}&booking_value=${bv}&kind=${dateOpt!.kind}&date_str=${dateOpt!.date}&margin_pct=${merchant.data!.margin_pct}`,
@@ -82,13 +82,14 @@ export default function Checkout() {
     try {
       const r = await api<Result>("/guarantees", {
         method: "POST",
-        body: JSON.stringify({ merchant_id: id, customer_name: customer.trim() || "Guest", customer_email: em || null, booking_value: bv, kind: dateOpt!.kind, date: dateOpt!.date }),
+        body: JSON.stringify({ merchant_id: id, customer_name: customer.trim() || "Guest", customer_email: em || null, booking_value: bv, kind: dateOpt!.kind, date: dateOpt!.date, expected_price: qd?.price ?? null }),
       });
       setResult(r);
       qc.invalidateQueries({ queryKey: ["dash", id] });
       qc.invalidateQueries({ queryKey: ["merchants"] });
     } catch (e: any) {
       setError(e.message);
+      quote.refetch(); // show the new price if it moved
     } finally {
       setSubmitting(false);
     }

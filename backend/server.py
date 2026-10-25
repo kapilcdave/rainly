@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from core import client, http, logger, bg_tasks  # loads .env first
 from routers import guarantees, markets, merchants
 from seed import migrate, seed
+from services import kalshi_ws
 from services.notifications import recover_interrupted_emails
 from services.settlement import settlement_loop
 
@@ -42,6 +43,7 @@ async def on_startup():
     await recover_interrupted_emails()
     t = asyncio.create_task(settlement_loop())
     bg_tasks.add(t)
+    bg_tasks.add(asyncio.create_task(kalshi_ws.run()))
 
 
 @app.on_event("shutdown")

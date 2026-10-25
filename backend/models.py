@@ -95,3 +95,4 @@ class GuaranteeCreate(BaseModel):
     booking_value: float = Field(gt=0, le=10000)
     kind: str = "weekend"
     date: Optional[str] = None
+    expected_price: Optional[float] = Field(default=None, ge=0)  # price the customer saw; reject if it went up

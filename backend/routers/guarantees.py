@@ -26,6 +26,8 @@ async def create_guarantee(body: GuaranteeCreate):
     q = await build_quote(m.city, body.kind, d, body.booking_value, m.margin_pct)
     if not q["available"]:
         raise HTTPException(400, q.get("reason") or "Not available")
+    if body.expected_price is not None and q["price"] > body.expected_price + 0.005:
+        raise HTTPException(409, f"The rain refund price just changed to ${q['price']:.2f}. Please review and confirm again.")
     g = Guarantee(merchant_id=m.id, customer_name=body.customer_name or "Guest", booking_value=body.booking_value,
                   kind=body.kind, date=d.isoformat(), event_ticker=q["event_ticker"], ticker=q["ticker"], p=q["p"],
                   fee_per_contract=q["fee_per_contract"], contracts=q["contracts"], hedge_cost=q["hedge_cost"],
