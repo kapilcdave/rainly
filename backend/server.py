@@ -19,6 +19,7 @@ from bson import ObjectId
 from pydantic import BaseModel, BeforeValidator, Field, ConfigDict
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -42,7 +43,7 @@ BUSINESS_TYPES = ["patio_restaurant", "food_truck", "outdoor_event", "boat_tour"
 ET = ZoneInfo("America/New_York")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("rainly")
+logger = logging.getLogger("rainthropic")
 
 app = FastAPI()
 
@@ -318,9 +319,12 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
 def _signed_headers(method: str, path: str) -> dict:
     ts = str(int(time.time() * 1000))
     key = serialization.load_pem_private_key(KALSHI_PRIVATE_KEY_PEM.replace("\\n", "\n").encode(), password=None)
-    sig = key.sign(f"{ts}{method.upper()}{path}".encode(),
-                   padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH),
-                   hashes.SHA256())
+    msg = f"{ts}{method.upper()}{path.split('?')[0]}".encode()
+    if isinstance(key, Ed25519PrivateKey):
+        sig = key.sign(msg)  # Ed25519 (RFC 8032), no padding
+    else:
+        sig = key.sign(msg, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH),
+                       hashes.SHA256())
     return {"KALSHI-ACCESS-KEY": KALSHI_ACCESS_KEY, "KALSHI-ACCESS-TIMESTAMP": ts,
             "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(), "Content-Type": "application/json"}
 
@@ -335,7 +339,7 @@ async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str
     if trading_mode() == "kalshi_demo":
         path = "/portfolio/orders"
         signed_path = "/trade-api/v2" + path
-        cid = f"rainly-{guarantee_id or ObjectId()}"
+        cid = f"rainthropic-{guarantee_id or ObjectId()}"
         payload = {"ticker": ticker, "side": "yes", "action": "buy", "count": count, "type": "limit",
                    "yes_price": min(99, max(1, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)))),
                    "client_order_id": cid}
@@ -440,7 +444,7 @@ async def settlement_loop():
 # ---------------------------------------------------------------- Routes
 @api_router.get("/")
 async def root():
-    return {"app": "Rainly", "mode": trading_mode()}
+    return {"app": "Rainthropic", "mode": trading_mode()}
 
 
 @api_router.get("/meta")

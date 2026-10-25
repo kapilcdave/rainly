@@ -34,7 +34,7 @@ export default function Landing() {
           <Animated.View entering={FadeInDown.duration(500)} style={styles.logoTile}>
             <Logo size={64} color={colors.brandPrimary} />
           </Animated.View>
-          <Text style={styles.brand}>Rainly</Text>
+          <Text style={styles.brand}>Rainthropic</Text>
           <Animated.Text entering={FadeInDown.delay(100).duration(500)} style={styles.h1}>
             Rain shouldn&apos;t cost you customers
           </Animated.Text>

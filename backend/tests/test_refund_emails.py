@@ -1,4 +1,4 @@
-# Rainly iteration 2: customer_email on guarantees + settlement refund emails (Resend via Emergent)
+# Rainthropic iteration 2: customer_email on guarantees + settlement refund emails (Resend via Emergent)
 import os
 import time
 from datetime import datetime, timezone
