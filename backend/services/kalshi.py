@@ -21,13 +21,13 @@ from services import kalshi_ws
 _cache: dict[str, tuple[float, Any]] = {}
 
 
-async def kget(path: str, params: Optional[dict] = None, ttl: int = 15):
-    key = path + str(sorted((params or {}).items()))
+async def kget(path: str, params: Optional[dict] = None, ttl: int = 15, base: str = KALSHI_PUBLIC):
+    key = base + path + str(sorted((params or {}).items()))
     hit = _cache.get(key)
     if hit and time.time() - hit[0] < ttl:
         return hit[1]
     try:
-        r = await http.get(KALSHI_PUBLIC + path, params=params)
+        r = await http.get(base + path, params=params)
         if r.status_code == 404:
             data = None
         else:
@@ -134,11 +134,14 @@ def f(v) -> float:
 
 
 async def orderbook(ticker: str) -> dict:
-    live = kalshi_ws.book(ticker)
-    if live is not None:
-        return live
-    kalshi_ws.watch(ticker)
-    data = await kget(f"/markets/{ticker}/orderbook", ttl=10) or {}
+    """Book of the exchange Rainly trades on: the demo exchange in demo mode, otherwise production (stream first)."""
+    demo = trading_mode() == "kalshi_demo"
+    if not demo:
+        live = kalshi_ws.book(ticker)
+        if live is not None:
+            return live
+        kalshi_ws.watch(ticker)
+    data = await kget(f"/markets/{ticker}/orderbook", ttl=2 if demo else 10, base=KALSHI_DEMO if demo else KALSHI_PUBLIC) or {}
     ob = data.get("orderbook_fp") or {}
     yes_bids = [(f(p), f(s)) for p, s in (ob.get("yes_dollars") or [])]
     no_bids = [(f(p), f(s)) for p, s in (ob.get("no_dollars") or [])]
@@ -172,19 +175,20 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
     m = find_market(markets, city)
     if not m:
         return {**base, "reason": f"{city} not listed for this date"}
-    p = f(m.get("yes_ask_dollars"))
-    live = kalshi_ws.book(m["ticker"])
-    if live is not None:  # streamed book beats the cached REST snapshot
-        p = live["asks"][0][0] if live["asks"] else 0.0
+    mode = trading_mode()
+    live = kalshi_ws.book(m["ticker"])  # production stream: the real rain odds
+    chance = live["asks"][0][0] if live and live["asks"] else f(m.get("yes_ask_dollars"))
+    book = await orderbook(m["ticker"]) if mode == "kalshi_demo" else live  # price from where the order fills
+    p = (book["asks"][0][0] if book["asks"] else 0.0) if book is not None else chance
     info = {
         **base,
-        "price_source": "stream" if live is not None else "rest",
+        "price_source": "demo" if mode == "kalshi_demo" else ("stream" if live is not None else "rest"),
         "ticker": m["ticker"],
         "title": m.get("title"),
         "rules_primary": m.get("rules_primary"),
         "status": m.get("status"),
         "result": m.get("result") or None,
-        "yes_ask": p,
+        "yes_ask": chance,  # real rain odds (production), shown to people
         "yes_bid": f(m.get("yes_bid_dollars")),
         "last_price": f(m.get("last_price_dollars")),
         "volume": f(m.get("volume_fp")),
@@ -194,16 +198,16 @@ async def build_quote(city: str, kind: str, d: date, booking_value: float, margi
     if m.get("status") not in ("active", "open"):
         return {**info, "reason": "Rain already recorded — closed" if m.get("result") == "yes" else "Market closed"}
     if p <= 0 or p >= 1:
-        return {**info, "reason": "No sellers right now"}
+        return {**info, "reason": "No sellers on Kalshi right now"}
     if p > MAX_P:
         return {**info, "reason": "High rain risk — not offered"}
-    ob = live or await orderbook(m["ticker"])
+    ob = book or await orderbook(m["ticker"])
     contracts = math.ceil(booking_value)
     fill = walk_book(ob["asks"], contracts)
     if fill:
         avg, worst, fee_total = fill
         q = {**price_quote(avg, booking_value, margin_pct, fee=fee_total / contracts), "limit": worst}
-    elif trading_mode() == "kalshi_live":  # a real hedge would not fill below the rain-risk cap
+    elif mode in ("kalshi_live", "kalshi_demo"):  # a real order would not fill below the rain-risk cap
         return {**info, **price_quote(p, booking_value, margin_pct), "depth_ok": False,
                 "reason": "Not enough sellers on Kalshi right now"}
     else:  # simulated: price at the best ask, flagged as thin
@@ -329,41 +333,52 @@ class HedgeFailed(Exception):
 
 _live_lock = asyncio.Lock()  # one real order at a time, so the daily cap can't be overshot by parallel checkouts
 
+REJECT_REASONS = {
+    "insufficient_balance": "Rainly's Kalshi account doesn't have enough funds for this order — no charge",
+    "market_closed": "This rain market just closed — no charge",
+}
 
-async def _place_live(order: HedgeOrder, ticker: str, count: int, limit: float, cid: str):
-    """Real-money buy on Kalshi production. Fill-or-kill: fully hedged or nothing, never left resting."""
+
+async def _place_real(order: HedgeOrder, ticker: str, count: int, limit: float, cid: str, live: bool):
+    """Buy on Kalshi (production when live, else the demo exchange). Fill-or-kill: fully covered or nothing."""
     path = "/portfolio/events/orders"
+    mode, base = ("kalshi_live", KALSHI_PUBLIC) if live else ("kalshi_demo", KALSHI_DEMO)
     worst = live_worst_cost(count, limit)
     limit = min(0.99, max(0.01, round(limit + 0.01, 2)))  # 1¢ tolerance for the book moving
     payload = {"ticker": ticker, "client_order_id": cid, "side": "bid", "count": f"{count:.2f}",
                "price": f"{limit:.4f}", "time_in_force": "fill_or_kill",
                "self_trade_prevention_type": "taker_at_cross"}
     async with _live_lock:
-        if await spent_today() + worst > DAILY_HEDGE_CAP:
+        if live and await spent_today() + worst > DAILY_HEDGE_CAP:
             raise HedgeFailed("Today's hedge budget is used up — back tomorrow")
         try:
-            r = await http.post(KALSHI_PUBLIC + path, headers=_signed_headers("POST", "/trade-api/v2" + path, live=True), json=payload)
+            r = await http.post(base + path, headers=_signed_headers("POST", "/trade-api/v2" + path, live=live), json=payload)
         except Exception as e:
             # Kalshi may have accepted it: record the worst-case cost so the cap still holds, flag for review.
-            logger.error("Kalshi live order outcome unknown (%s): %s", cid, e)
-            await db.orders.insert_one({**order.to_mongo(), "mode": "kalshi_live", "status": "unknown", "cost": worst,
+            logger.error("Kalshi %s order outcome unknown (%s): %s", mode, cid, e)
+            await db.orders.insert_one({**order.to_mongo(), "mode": mode, "status": "unknown", "cost": worst,
                                         "note": f"Connection lost — check Kalshi for order {cid}"})
-            raise HedgeFailed("Couldn't confirm the hedge with Kalshi — please try again")
+            raise HedgeFailed("Couldn't confirm the order with Kalshi — please try again")
     if r.status_code not in (200, 201):
-        logger.warning("Kalshi live order rejected %s %s", r.status_code, r.text[:300])
-        raise HedgeFailed("No sellers at the live price right now — no charge, please try again")
+        logger.warning("Kalshi %s order rejected %s %s", mode, r.status_code, r.text[:300])
+        try:
+            e = r.json().get("error")
+            err = (e.get("code") if isinstance(e, dict) else "") or ""
+        except (ValueError, AttributeError):
+            err = ""
+        raise HedgeFailed(REJECT_REASONS.get(err, f"Kalshi didn't accept the order ({err or r.status_code}) — no charge, please try again"))
     o = r.json()
     filled = f(o.get("fill_count"))
     if filled < count:
         raise HedgeFailed("No sellers at the live price right now — no charge, please try again")
-    order.mode = "kalshi_live"
+    order.mode = mode
     order.kalshi_order_id = o.get("order_id")
     order.filled = filled
     order.price = f(o.get("average_fill_price")) or limit
     order.fee = round(f(o.get("average_fee_paid")) * filled, 2)
     order.cost = round(order.price * filled + order.fee, 2)
     order.status = "filled"
-    order.note = "Real order on Kalshi"
+    order.note = "Real order on Kalshi" if live else "Filled on Kalshi demo"
 
 
 async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str, count: int, p: float, fee: float,
@@ -372,39 +387,9 @@ async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str
     limit = limit if limit is not None else min(0.99, p + DEPTH_SLIPPAGE)
     order = HedgeOrder(merchant_id=merchant_id, guarantee_id=guarantee_id, ticker=ticker, count=count,
                        price=p, fee=round(fee * count, 2), mode="mock", note="Simulated at live Kalshi price")
-    if trading_mode() == "kalshi_live":
-        await _place_live(order, ticker, count, limit, f"rainly-{guarantee_id or ObjectId()}")  # raises HedgeFailed
-    elif trading_mode() == "kalshi_demo":
-        path = "/portfolio/events/orders"  # Create Order V2 (legacy /portfolio/orders is deprecated)
-        signed_path = "/trade-api/v2" + path
-        cid = f"rainly-{guarantee_id or ObjectId()}"
-        limit = min(0.99, max(0.01, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)) / 100))
-        payload = {"ticker": ticker, "client_order_id": cid, "side": "bid", "count": f"{count:.2f}",
-                   "price": f"{limit:.4f}", "time_in_force": "good_till_canceled",
-                   "self_trade_prevention_type": "taker_at_cross"}
-        try:
-            r = await http.post(KALSHI_DEMO + path, headers=_signed_headers("POST", signed_path), json=payload)
-            if r.status_code in (200, 201):
-                o = r.json()
-                filled = f(o.get("fill_count"))
-                order.kalshi_order_id = o.get("order_id")
-                order.mode = "kalshi_demo"
-                if filled > 0:
-                    order.price = f(o.get("average_fill_price")) or p
-                    order.fee = round(f(o.get("average_fee_paid")) * filled, 2)
-                    order.status = "filled" if filled >= count else f"partial {filled:g}/{count}"
-                else:
-                    # Demo books are often empty: the limit bid rests on the demo exchange until a seller arrives.
-                    order.price = limit
-                    order.fee = 0.0
-                    order.status = "resting"
-                    order.note = f"Resting limit bid at {round(limit * 100)}¢ on Kalshi demo"
-            else:
-                order.note = f"Demo rejected ({r.status_code}); simulated fill at live ask"
-                logger.warning("Kalshi demo order rejected %s %s", r.status_code, r.text[:300])
-        except Exception as e:  # network / key errors → simulated fill so the demo never breaks
-            order.note = "Demo unreachable; simulated fill at live ask"
-            logger.warning("Kalshi demo order failed: %s", e)
+    mode = trading_mode()
+    if mode in ("kalshi_live", "kalshi_demo"):  # raises HedgeFailed unless fully filled
+        await _place_real(order, ticker, count, limit, f"rainly-{guarantee_id or ObjectId()}", live=mode == "kalshi_live")
     res = await db.orders.insert_one(order.to_mongo())
     order.id = str(res.inserted_id)
     return order

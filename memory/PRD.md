@@ -64,3 +64,10 @@ Build "Rainly": mobile-first app that lets small outdoor businesses offer custom
 - Landing: example paragraph, How it works, then 'Today's rain odds from Kalshi'. Merchants: 'Try it as a business', 'bookings covered'.
 - Dashboard: rain line, Bookings covered / You earn, Open customer checkout, Customers covered (5 + show all), See a real rainy day, collapsed 'How it's hedged on Kalshi' (math, trigger, order book, orders). Badge 'Real orders on Kalshi'.
 - Checkout: header 'Your customer's checkout', auto-select first available date, 'Add a rain refund for $X', success customer line + 'For the business' box.
+
+## Kalshi demo trading (Jun 2026)
+- Live prod orders failed with insufficient_balance (only $0.28 on exchange_index 0). Switched: KALSHI_LIVE_TRADING=false, MOCK_TRADING=false → kalshi_demo.
+- Demo mode prices from the demo exchange book (REST, 2s cache) so orders actually fill; fill-or-kill on demo-api.kalshi.co; unfilled → booking rejected. Rejection codes mapped to plain messages (insufficient_balance, market_closed).
+- Verified: $45 Chicago today booking filled 45 @1¢ on demo.
+- Landing: removed lead + example paragraphs.
+- Maria moved to Tampa (deepest demo book today: ~10.6k contracts at 4-6¢). Demo tomorrow markets have no sellers anywhere.

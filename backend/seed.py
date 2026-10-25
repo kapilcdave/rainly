@@ -12,16 +12,16 @@ CUSTOMERS = ["Ana", "Ben", "Carla", "Dev", "Elena", "Femi", "Gabe", "Hana", "Iva
 async def seed():
     if await db.merchants.count_documents({}) > 0:
         return
-    maria = Merchant(name="Maria's Patio Taqueria", business_type="patio_restaurant", city="Chicago", avg_booking=45)
+    maria = Merchant(name="Maria's Patio Taqueria", business_type="patio_restaurant", city="Tampa", avg_booking=45)
     maria.id = str((await db.merchants.insert_one(maria.to_mongo())).inserted_id)
     boat = Merchant(name="Bayfront Boat Tours", business_type="boat_tour", city="Miami", avg_booking=80)
     await db.merchants.insert_one(boat.to_mongo())
 
     sat = weekend_saturday(today_et())
     et = event_ticker("weekend", sat)
-    p, ticker_ = 0.12, f"{et}-CHI"
+    p, ticker_ = 0.12, f"{et}-TPA"
     try:
-        m = find_market(await get_event_markets("weekend", sat) or [], "Chicago")
+        m = find_market(await get_event_markets("weekend", sat) or [], "Tampa")
         if m:
             ticker_ = m["ticker"]
             ask = f(m.get("yes_ask_dollars"))

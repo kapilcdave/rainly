@@ -109,7 +109,7 @@ class TestLiveModeGuards:
         async def _fail(*a, **kw):
             raise live.HedgeFailed("No sellers at the live price right now — please try again")
 
-        monkeypatch.setattr(live, "_place_live", _fail)
+        monkeypatch.setattr(live, "_place_real", _fail)
 
         async def spent0():
             return 0.0
@@ -136,7 +136,7 @@ class TestLiveModeGuards:
         import routers.guarantees as rg
         o = _open_weekend()
 
-        async def _fake_fill(order, ticker, count, limit, cid):  # iter12: 4th arg is the walked-book limit
+        async def _fake_fill(order, ticker, count, limit, cid, live=True):  # iter12: 4th arg is the walked-book limit
             p = limit
             order.mode = "kalshi_live"
             order.kalshi_order_id = "TEST_fake"
@@ -147,7 +147,7 @@ class TestLiveModeGuards:
             order.status = "filled"
             order.note = "Real order on Kalshi"
 
-        monkeypatch.setattr(live, "_place_live", _fake_fill)
+        monkeypatch.setattr(live, "_place_real", _fake_fill)
 
         async def go():
             res = await rg.create_guarantee(GuaranteeCreate(merchant_id=MARIA, customer_name="TEST_iter9_liveok",

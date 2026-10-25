@@ -28,7 +28,7 @@ type Dash = {
   recent_guarantees: Booking[];
 };
 
-const MODE_LABEL: Record<string, string> = { mock: "Simulated", kalshi_live: "Real orders on Kalshi", kalshi_demo: "Kalshi demo" };
+const MODE_LABEL: Record<string, string> = { mock: "Simulated", kalshi_live: "Real orders on Kalshi", kalshi_demo: "Orders on Kalshi demo" };
 
 function signed(n: number) {
   return `${n >= 0 ? "+" : ""}${money(n)}`;

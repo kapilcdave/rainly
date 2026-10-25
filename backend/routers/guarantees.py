@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 
-from core import db, bg_tasks
+from core import db, bg_tasks, logger
 from emailer import EMAIL_RE
 from models import Guarantee, GuaranteeCreate
 from routers.merchants import merchant_or_404
@@ -38,6 +38,10 @@ async def create_guarantee(body: GuaranteeCreate):
     except HedgeFailed as e:  # never sell a refund we couldn't hedge
         await db.guarantees.delete_one({"_id": ObjectId(g.id)})
         raise HTTPException(409, str(e))
+    except Exception:
+        await db.guarantees.delete_one({"_id": ObjectId(g.id)})
+        logger.exception("hedge failed unexpectedly")
+        raise HTTPException(502, "Couldn't place the order on Kalshi — no charge, please try again")
     if email:
         t = asyncio.create_task(send_booking_confirmation(g, m, q.get("rules_primary") or ""))
         bg_tasks.add(t)

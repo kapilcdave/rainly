@@ -1,0 +1,36 @@
+{
+  "summary": "Tested Maria's move to Tampa in kalshi_demo mode, backend and frontend, at 390px. Everything requested passed. (1) GET /api/quote Tampa/45/daily/2026-10-25 returns available true, price_source 'demo', p 0.04 (the demo best ask, about 10,600 contracts within 3¢) and yes_ask 0.04, which equals production. Albuquerque shows the split clearly: yes_ask 0.37–0.40 (production) while p is 0.54 (demo book). Chicago's empty demo book still shows production odds (1%). (2) End-to-end in the UI, one booking: Today was preselected; the widget read 'Add a rain refund for $2.31' and 'Get your $45 back if it rains on Sunday, October 25th.' with '4% chance of rain'. Toggle on, name TEST_tampa, no email, total $47.31, then confirm. POST returned 200 and showed 'Booking confirmed', \"You're covered: $45 back if it rains on Sunday, October 25th.\" and 'Hedged: 45 contracts @ 4¢ on Kalshi (Kalshi demo · filled)'. db.orders had mode kalshi_demo, status filled, kalshi_order_id 01a173c8-c948-7f07-9c74-fec465b634cc and cost $1.92. Kalshi demo shows the order executed (45 contracts, $1.80 plus fees). Demo balance is now $92.21. (3) Dashboard: subtitle 'Patio restaurant · Tampa', 'Tampa this weekend: 8% chance of rain' (production about 7%, not 0%), badge 'Orders on Kalshi demo', TEST_tampa at the top as Covered, 42 covered, hedge log '45 contracts @ 4¢ Kalshi demo · filled $1.92'. (4) Tomorrow (22%) and Weekend (7%) show 'No sellers on Kalshi right now · rain chance X%'. Tapping the toggle does nothing; no name or email fields appear. (5) The landing page loads and the ticker shows Chicago, NYC, Miami, Seattle and Austin. (6) create_guarantee now deletes the booking on any exception (verified in-process with a RuntimeError, so no orphan). (7) Cleanup: the TEST_ guarantee and its order were purged by the conftest teardown. Maria is back to 41.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/guarantees (routers/guarantees.py:41-43)", "issue": "On an unexpected place_hedge exception the booking is now deleted (verified), but the bare re-raise returns a 500 with no user-facing message. Consider returning 502 'Couldn't place the hedge — no charge' so the checkout shows a friendly error."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Checkout", "issues": ["The rain-refund-toggle has no accessibilityRole='switch' or accessibilityState (checked/disabled). The web DOM shows no aria-checked or aria-disabled, so screen readers can't tell it is off or unavailable.", "The 'Tomorrow · Monday, October 26th' date chip is cut off at 390px (horizontal scroll). That's acceptable, but there is no scroll affordance."]},
+      {"screen": "Dashboard", "issues": ["The customer list shows 5 rows plus 'Show 5 more' while 'Bookings covered' is 42. The list is capped at 10 recent bookings, so the label suggests only 10 exist."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter16_tampa_demo.py", "/app/backend/tests/test_iter15_demo_mode.py", "/app/test_reports/pytest/pytest_iter16.xml"],
+  "action_items": [
+    "Optional: map unexpected hedge exceptions in create_guarantee to a 502 with a 'no charge' message, not a raw 500.",
+    "Optional: add accessibilityRole='switch' and accessibilityState={{checked:on, disabled:!available}} to the rain-refund toggle.",
+    "Optional: dashboard 'Show N more' should reflect the total (or say 'Show recent'), because only 10 recent bookings are returned."
+  ],
+  "critical_code_review_comments": [
+    "kalshi.py:179-182: chance = production stream ask (falling back to production REST yes_ask_dollars, since get_event_markets uses KALSHI_PUBLIC). p comes from the demo book in kalshi_demo. Correct.",
+    "kalshi.py:200-201: the empty demo book gives 'No sellers on Kalshi right now' while yes_ask stays the production odds. Correct.",
+    "guarantees.py:36-43: HedgeFailed gives 409 plus delete; any other exception deletes and re-raises. No orphans."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter16_tampa_demo.py (new)", "/app/backend/tests/test_iter15_demo_mode.py (stale yes_ask==demo-ask assertions now check q['p'], because yes_ask is production odds)"],
+  "success_rate": {"backend": "100% (19/19 for iter15 + iter16)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "1 real demo booking (TEST_tampa, 45 contracts KXRAIN-26OCT25-TPA @4¢, $1.92). The guarantee and order were deleted from the DB; the position remains on the Kalshi demo account (demo money).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Maria (6add11451f0373a8576b5b40) is in Tampa with 41 guarantees. Mode is kalshi_demo; demo balance is $92.21. The Tampa today demo book has about 10,570 contracts at 4–6¢. Tampa tomorrow and weekend demo books are empty. conftest.py purges TEST_ guarantees and orders at session end. tests/test_iter16 never POSTs /api/guarantees over HTTP. Total UI demo bookings made this iteration: 1.",
+  "rca_of_issue": ""
+}

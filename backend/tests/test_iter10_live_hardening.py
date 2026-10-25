@@ -111,7 +111,7 @@ class TestPlaceLive:
             return FakeResp(201, {"order_id": "X1", "fill_count": "5.00", "average_fill_price": "0.05", "average_fee_paid": "0.0034"})
         _patch_post(monkeypatch, k, ok)
         o = _order(k)
-        run(k._place_live(o, "KXTEST", 5, 0.04, "rainly-test"))
+        run(k._place_real(o, "KXTEST", 5, 0.04, "rainly-test", live=True))
         body = k._calls[0]
         assert body["time_in_force"] == "fill_or_kill"
         assert body["count"] == "5.00" and body["price"] == "0.0500"  # iter12: limit passed directly (walked book) + 1c
@@ -124,7 +124,7 @@ class TestPlaceLive:
             return FakeResp(201, {"order_id": "X2", "fill_count": "3.00"})
         _patch_post(monkeypatch, k, part)
         with pytest.raises(k.HedgeFailed):
-            run(k._place_live(_order(k), "KXTEST", 5, 0.04, "rainly-test"))
+            run(k._place_real(_order(k), "KXTEST", 5, 0.04, "rainly-test", live=True))
 
     def test_rejected_raises(self, k, monkeypatch):
         _spent(monkeypatch, k, 0.0)
@@ -133,7 +133,7 @@ class TestPlaceLive:
             return FakeResp(400, {"error": "fok not filled"})
         _patch_post(monkeypatch, k, rej)
         with pytest.raises(k.HedgeFailed):
-            run(k._place_live(_order(k), "KXTEST", 5, 0.04, "rainly-test"))
+            run(k._place_real(_order(k), "KXTEST", 5, 0.04, "rainly-test", live=True))
 
     def test_cap_recheck_inside_lock_blocks_post(self, k, monkeypatch):
         _spent(monkeypatch, k, 9.9)
@@ -142,7 +142,7 @@ class TestPlaceLive:
             return FakeResp(201, {"fill_count": "5.00"})
         _patch_post(monkeypatch, k, ok)
         with pytest.raises(k.HedgeFailed) as ei:
-            run(k._place_live(_order(k), "KXTEST", 5, 0.04, "rainly-test"))
+            run(k._place_real(_order(k), "KXTEST", 5, 0.04, "rainly-test", live=True))
         assert "budget" in str(ei.value) and k._calls == []
 
     def test_connection_lost_records_worst_case(self, k, monkeypatch):
@@ -153,7 +153,7 @@ class TestPlaceLive:
             raise ConnectionError("reset")
         _patch_post(monkeypatch, k, boom)
         with pytest.raises(k.HedgeFailed):
-            run(k._place_live(_order(k), "KXTEST", 5, 0.04, "rainly-test"))
+            run(k._place_real(_order(k), "KXTEST", 5, 0.04, "rainly-test", live=True))
         doc = run(db.orders.find_one({"guarantee_id": TEST_GID}))
         assert doc and doc["mode"] == "kalshi_live" and doc["status"] == "unknown"
         assert doc["cost"] == round(5 * 0.05 * 1.07, 2) + 0.01 == k.live_worst_cost(5, 0.04)  # limit 4c + 1c tolerance
@@ -176,7 +176,7 @@ class TestPlaceLive:
         _patch_post(monkeypatch, k, slow)
 
         async def go():
-            return await asyncio.gather(*[k._place_live(_order(k), "KXTEST", 5, 0.04, f"c{i}") for i in range(3)],
+            return await asyncio.gather(*[k._place_real(_order(k), "KXTEST", 5, 0.04, f"c{i}", live=True) for i in range(3)],
                                         return_exceptions=True)
         res = run(go())
         assert state["max"] == 1

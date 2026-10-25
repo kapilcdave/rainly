@@ -38,15 +38,6 @@ export default function Landing() {
           <Animated.Text entering={FadeInDown.duration(500)} style={styles.h1}>
             Rain shouldn&apos;t cost you customers.
           </Animated.Text>
-          <Animated.Text entering={FadeInDown.delay(100).duration(500)} style={styles.lead}>
-            Sell a rain refund at checkout. It&apos;s priced from live Kalshi odds and covered automatically.
-          </Animated.Text>
-          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.example} testID="landing-example">
-            <Text style={styles.exampleText}>
-              A customer books a $45 patio table. They add a $1 rain refund. If it rains, they get $45 back, and Kalshi pays you the $45 so it
-              costs you nothing.
-            </Text>
-          </Animated.View>
         </View>
 
         <View style={[styles.pad, styles.sectionHead]}>
@@ -122,7 +113,6 @@ const useStyles = makeStyles((c) => ({
   brandRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   brand: { fontFamily: fonts.display, fontSize: 20, color: c.onSurface, letterSpacing: -0.3 },
   h1: { fontFamily: fonts.display, fontSize: 42, lineHeight: 46, color: c.onSurface, letterSpacing: -1.2, marginTop: 40 },
-  lead: { fontFamily: fonts.body, fontSize: 17, lineHeight: 25, color: c.onSurfaceSecondary, marginTop: 14 },
   example: { marginTop: 20, paddingLeft: 14, borderLeftWidth: 3, borderLeftColor: c.brandPrimary },
   exampleText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: c.onSurface },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 40, marginBottom: 4 },

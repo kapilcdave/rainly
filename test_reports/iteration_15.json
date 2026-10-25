@@ -1,0 +1,43 @@
+{
+  "summary": "Tested kalshi_demo mode on backend and frontend. Passed: (1) GET /api/meta returns mode 'kalshi_demo' with mock_trading false. (2) Quotes use price_source 'demo' and match the demo order book exactly. (3) Fill-or-kill orders go to demo-api.kalshi.co. Rejection codes are mapped (insufficient_balance, market_closed). An unfilled order returns 409 and the booking is deleted. (4) Landing page: the lead and example paragraphs are gone; the headline, How it works and Today's rain odds remain. (5) Maria's checkout shows 'Rain refund unavailable · No sellers on Kalshi right now' with the toggle disabled for Today, Tomorrow and Weekend. (6) The dashboard badge reads 'Orders on Kalshi demo'. BLOCKED: the requested end-to-end booking for Maria (Chicago, Today) could not be done because the Chicago demo book is EMPTY. The book only ever held 46 contracts at 1¢, not about 250. The main agent's 1-contract probe and 45-contract verification order (15:45–15:47 UTC, both executed) took all of them. Miami and NYC demo books are also empty, so none of the 3 real merchants can sell a refund right now. To still prove the real flow, I ran ONE UI booking on a temporary merchant, 'TEST_ABQ Demo Patio' (Albuquerque; the demo book has about 297 contracts at 54¢). Result: 'Booking confirmed', \"You're covered: $10 back if it rains on Sunday, October 25th.\" and 'Hedged: 10 contracts @ 54¢ on Kalshi (Kalshi demo · filled)'. db.orders had mode kalshi_demo, status filled, kalshi_order_id 01a173c3-52d8-7e8e-985f-544d0da24077 and cost $5.57. The Kalshi demo order shows executed, and the demo balance went from $99.70 to $94.13. The booking showed on the dashboard as Covered. Cleaned up: the TEST guarantee, its order and the temporary merchant are deleted, and Maria is back to 41 guarantees. Fixed one backend bug in _place_real: a crash when the rejection body's error field is not an object.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "Kalshi demo liquidity (Chicago/Miami/NYC)", "issue": "Demo order books for all 3 real merchants' markets are empty: KXRAIN-26OCT25-CHI, -26OCT26-CHI, KXRAINWKND-26OCT24-CHI and the MIA/NYC markets. Every checkout quote for Maria shows 'No sellers on Kalshi right now'. The book only held 46 contracts at 1¢, and the main agent's probe plus verification order took all of them. Rainly cannot sell a refund to any real merchant until demo sellers return.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "services/kalshi.py _place_real", "issue": "FIXED by T1. If the rejection body had a non-dict 'error' value, e.g. {\"error\": \"fok not filled\"}, the code raised AttributeError and not HedgeFailed. That returned a 500 and left an orphan guarantee, because create_guarantee only deletes the booking on HedgeFailed."},
+      {"endpoint": "routers/guarantees.py:36-40", "issue": "Only HedgeFailed deletes the guarantee. Any other exception in place_hedge (an unexpected Kalshi 201 body, a DB insert error) leaves an unhedged guarantee. Use a broader except that deletes the booking and re-raises, or returns 409/502."},
+      {"endpoint": "GET /api/quote yes_ask in demo mode", "issue": "The 'chance of rain' shown to customers is now the demo book ask, not the real market. Albuquerque shows 54% on demo versus 43% on production. Chicago's weekend shows 0% when the demo book is empty, versus 2% on production. Price from the demo book, but show the production yes_ask as the rain chance."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Dashboard weekend-rain-line", "issue": "Shows 'Chicago this weekend: 0% chance of rain' when the demo book has no sellers (yes_ask 0.0). Show 'odds not available', or use the production price. Reference: app/merchant/[id]/index.tsx:91", "testID": "weekend-rain-line", "priority": "medium"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard header", "issues": ["The longer badge text 'Orders on Kalshi demo' squeezes the header title. At 375px 'Maria's Patio Taqueria' wraps to 2 lines, and the subtitle wraps for longer merchant names."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter15_demo_mode.py", "/app/test_reports/pytest/pytest_iter15.xml"],
+  "action_items": [
+    "HIGH: The Chicago, Miami and NYC demo books have no asks, so Maria cannot sell any refund right now and the requested Maria end-to-end test is blocked. Options: wait for or seed demo liquidity (e.g. a second demo account resting NO bids), or tell the user that demo fills depend on the demo market maker.",
+    "Show the production yes_ask as the rain chance in demo mode, and keep the demo book for pricing and limits only. Also stop the dashboard showing '0% chance of rain' when there are no sellers (index.tsx:91).",
+    "In create_guarantee, delete the guarantee on any exception from place_hedge, not only HedgeFailed.",
+    "Update stale tests that assume mock or live mode: test_iter9 TestMockModeAPI.test_merchant_dashboard_mode_mock, test_iter10 TestPublicLive.* (meta, dashboard and quote availability), and test_iter12 TestWalkedQuotes.*. They now fail because of the mode change and the empty demo book, not because of regressions."
+  ],
+  "critical_code_review_comments": [
+    "kalshi.py:182-185 prices from the demo book in demo mode. Correct. The reason when there are no sellers is correct.",
+    "kalshi.py:213 makes a thin demo book unavailable, so a real order can't be killed for depth. Correct.",
+    "kalshi.py:345-383 _place_real sends FOK to the right base URL and uses the demo or production keys depending on live. The 'Filled on Kalshi demo' note is correct.",
+    "kalshi.py:372-375 on a 201 FOK kill (fill_count 0) shows 'No sellers at the live price right now — no charge'. This is now accurate for demo."
+  ],
+  "updated_files": ["/app/backend/services/kalshi.py (_place_real: tolerate a non-dict error body)", "/app/backend/tests/test_iter10_live_hardening.py (_place_live -> _place_real(..., live=True))", "/app/backend/tests/test_iter9_live_trading_guards.py (_place_live -> _place_real, fake_fill signature)", "/app/backend/tests/test_iter15_demo_mode.py (new)"],
+  "success_rate": {"backend": "100% of the new iter15 suite (16/16 incl. iter10 TestPlaceLive). Older suites: 9 stale failures from the mode change or empty demo book (and the 1 real bug, now fixed).", "frontend": "All requested UI checks passed except the Maria end-to-end booking (blocked by no demo sellers). The real demo fill was verified end-to-end on a temporary Albuquerque merchant."},
+  "seed_data_creation": "Temporary merchant 'TEST_ABQ Demo Patio' (6ade25a93e0fdda5e6f7ce4f) with 1 guarantee (TEST_ui_demo) and 1 kalshi_demo order. All deleted from the DB afterwards. The 10-contract ABQ position remains on the Kalshi demo account (demo money, $5.57).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Mode is kalshi_demo. Demo balance is $94.13. The Chicago, Miami and NYC demo books are empty. Albuquerque today (KXRAIN-26OCT25-ABQ) has about 287 contracts left at 54¢, and Minneapolis has asks at 97¢ (over the 60¢ cap). POST /api/guarantees places REAL demo orders now. Maria has 41 guarantees. Use tests/test_iter15_demo_mode.py; it never POSTs /api/guarantees.",
+  "rca_of_issue": "Maria's Today quote is unavailable because the demo exchange has no asks on KXRAIN-26OCT25-CHI. The demo account's order history shows a probe (1 contract, 15:45:56) and order rainly-6ade248c64e7ade492e332d2 (45 contracts, 15:47:24), both executed at 1¢. Open interest is 46, so those 46 contracts were the whole book."
+}
