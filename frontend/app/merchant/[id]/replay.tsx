@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -27,17 +27,24 @@ export default function Replay() {
 
   const merchant = useQuery({ queryKey: ["merchant", id], queryFn: () => api<Merchant>(`/merchants/${id}`) });
   const city = merchant.data?.city;
-  const list = useQuery({ queryKey: ["replay", city], enabled: !!city, queryFn: () => api<{ items: Item[] }>(`/replay?city=${encodeURIComponent(city!)}`) });
+  const list = useQuery({ queryKey: ["replay", city], enabled: !!city, queryFn: () => api<{ items: Item[]; recommended: Partial<Record<"yes" | "no", string>> }>(`/replay?city=${encodeURIComponent(city!)}`) });
 
   const [result, setResult] = useState<"yes" | "no">("yes");
   const [ticker, setTicker] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [run, setRun] = useState(0);
+  const chipScroll = useRef<ScrollView>(null);
+  const chipX = useRef<Record<string, number>>({});
+  const scrollToChip = (t: string | null) => {
+    const x = t ? chipX.current[t] : undefined;
+    if (x !== undefined) chipScroll.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+  };
+  useEffect(() => scrollToChip(ticker), [ticker]);
 
   const items = useMemo(() => (list.data?.items || []).filter((i) => i.result === result), [list.data, result]);
   useEffect(() => {
-    setTicker(items[0]?.ticker ?? null);
-  }, [items]);
+    setTicker(list.data?.recommended?.[result] ?? items[0]?.ticker ?? null);
+  }, [items, list.data, result]);
 
   const bookings = 40;
   const detail = useQuery({
@@ -90,11 +97,11 @@ export default function Replay() {
             </Pressable>
           ))}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} style={{ height: 56, flexGrow: 0 }}>
+        <ScrollView ref={chipScroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} style={{ height: 56, flexGrow: 0 }}>
           {list.isLoading ? <ActivityIndicator color={colors.brandPrimary} /> : null}
           {!list.isLoading && items.length === 0 ? <Text style={styles.caption}>No settled dates found</Text> : null}
           {items.map((i) => (
-            <Pressable key={i.ticker} testID={`replay-date-${i.date}`} onPress={() => setTicker(i.ticker)} style={[styles.chip, ticker === i.ticker && styles.chipOn]}>
+            <Pressable key={i.ticker} testID={`replay-date-${i.date}`} onLayout={(e) => { chipX.current[i.ticker] = e.nativeEvent.layout.x; if (i.ticker === ticker) scrollToChip(i.ticker); }} onPress={() => setTicker(i.ticker)} style={[styles.chip, ticker === i.ticker && styles.chipOn]}>
               <Text style={[styles.chipText, ticker === i.ticker && { color: colors.onBrandSecondary }]}>{niceDate(i.date)}</Text>
             </Pressable>
           ))}
@@ -115,7 +122,7 @@ export default function Replay() {
               <Text style={styles.caption}>Entry price: {d.entry_source}</Text>
               {!d.would_offer ? (
                 <Text style={[styles.caption, { color: colors.warningText }]} testID="replay-not-offered-note">
-                  Above the 60% cap — in reality Rainthropic would have shown &quot;High rain risk&quot; and sold no refunds that day. Numbers below show what would have happened if it had.
+                  Above the 60% cap — in reality Rainly would have shown &quot;High rain risk&quot; and sold no refunds that day. Numbers below show what would have happened if it had.
                 </Text>
               ) : null}
             </View>

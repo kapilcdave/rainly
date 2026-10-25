@@ -43,7 +43,7 @@ BUSINESS_TYPES = ["patio_restaurant", "food_truck", "outdoor_event", "boat_tour"
 ET = ZoneInfo("America/New_York")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("rainthropic")
+logger = logging.getLogger("rainly")
 
 app = FastAPI()
 
@@ -339,7 +339,7 @@ async def place_hedge(merchant_id: str, guarantee_id: Optional[str], ticker: str
     if trading_mode() == "kalshi_demo":
         path = "/portfolio/orders"
         signed_path = "/trade-api/v2" + path
-        cid = f"rainthropic-{guarantee_id or ObjectId()}"
+        cid = f"rainly-{guarantee_id or ObjectId()}"
         payload = {"ticker": ticker, "side": "yes", "action": "buy", "count": count, "type": "limit",
                    "yes_price": min(99, max(1, math.ceil(round((p + DEPTH_SLIPPAGE) * 100, 4)))),
                    "client_order_id": cid}
@@ -444,7 +444,7 @@ async def settlement_loop():
 # ---------------------------------------------------------------- Routes
 @api_router.get("/")
 async def root():
-    return {"app": "Rainthropic", "mode": trading_mode()}
+    return {"app": "Rainly", "mode": trading_mode()}
 
 
 @api_router.get("/meta")
@@ -611,7 +611,34 @@ async def replay_list(city: str):
             items.append({"ticker": m["ticker"], "date": d.isoformat(), "result": m["result"],
                           "rules_primary": m.get("rules_primary"), "expiration_value": m.get("expiration_value")})
     items.sort(key=lambda x: x["date"], reverse=True)
-    return {"city": city, "items": items[:40]}
+    items = items[:40]
+    # Default each tab to the newest date Rainly would actually have sold (entry price within the cap).
+    recommended = {}
+    for res in ("yes", "no"):
+        for it in [i for i in items if i["result"] == res][:10]:
+            m = ((await kget(f"/markets/{it['ticker']}", ttl=3600)) or {}).get("market")
+            entry = await entry_price(m) if m else None
+            if entry is not None and entry <= MAX_P:
+                recommended[res] = it["ticker"]
+                break
+    return {"city": city, "items": items, "recommended": recommended}
+
+
+async def entry_price(m: dict) -> Optional[float]:
+    """First listed YES ask from hourly candles, or None."""
+    try:
+        start = int(datetime.fromisoformat(m["open_time"].replace("Z", "+00:00")).timestamp())
+        end = int(datetime.fromisoformat(m["close_time"].replace("Z", "+00:00")).timestamp())
+        series = m["event_ticker"].split("-")[0]
+        cs = await kget(f"/series/{series}/markets/{m['ticker']}/candlesticks",
+                        {"start_ts": start, "end_ts": end, "period_interval": 60}, ttl=3600) or {}
+        for c in cs.get("candlesticks", []):
+            a = f((c.get("yes_ask") or {}).get("close_dollars"))
+            if 0 < a < 1:
+                return a
+    except Exception as e:
+        logger.warning("candlesticks failed: %s", e)
+    return None
 
 
 @api_router.get("/replay/detail")
@@ -620,20 +647,7 @@ async def replay_detail(ticker: str, bookings: int = 40, booking_value: float = 
     m = (data or {}).get("market")
     if not m:
         raise HTTPException(404, "Market not found")
-    entry = None
-    try:
-        start = int(datetime.fromisoformat(m["open_time"].replace("Z", "+00:00")).timestamp())
-        end = int(datetime.fromisoformat(m["close_time"].replace("Z", "+00:00")).timestamp())
-        series = m["event_ticker"].split("-")[0]
-        cs = await kget(f"/series/{series}/markets/{ticker}/candlesticks",
-                        {"start_ts": start, "end_ts": end, "period_interval": 60}, ttl=3600) or {}
-        for c in cs.get("candlesticks", []):
-            a = f((c.get("yes_ask") or {}).get("close_dollars"))
-            if 0 < a < 1:
-                entry = a
-                break
-    except Exception as e:
-        logger.warning("candlesticks failed: %s", e)
+    entry = await entry_price(m)
     entry_source = "first listed YES ask (hourly candle)"
     if entry is None:
         entry, entry_source = 0.20, "assumed (no price history)"
@@ -699,6 +713,12 @@ async def on_startup():
         await seed()
     except Exception as e:
         logger.exception("Seed failed: %s", e)
+    # One-off cleanup requested by the owner: remove the stray test merchant from any environment.
+    async for doc in db.merchants.find({"name": "Diddy's Den"}):
+        mid = str(doc["_id"])
+        await db.guarantees.delete_many({"merchant_id": mid})
+        await db.orders.delete_many({"merchant_id": mid})
+        await db.merchants.delete_one({"_id": doc["_id"]})
     asyncio.create_task(settlement_loop())
 
 

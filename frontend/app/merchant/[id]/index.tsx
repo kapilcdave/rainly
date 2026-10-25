@@ -103,6 +103,15 @@ export default function Dashboard() {
           ) : null}
 
           <Text style={styles.h2}>Open position · P&amp;L</Text>
+          {d.stats.active > 0 && Math.abs(d.pnl.if_rains.net - d.pnl.if_dry.net) < 1 ? (
+            <View style={styles.banner} testID="same-profit-banner">
+              <Ionicons name="umbrella" size={20} color={colors.onBrandPrimary} />
+              <Text style={styles.bannerText}>
+                Same profit rain or shine: {d.pnl.if_dry.net >= 0 ? "+" : ""}
+                {money(Math.min(d.pnl.if_rains.net, d.pnl.if_dry.net))}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.metrics}>
             <PnLCard title="If it rains" icon="rainy-outline" p={d.pnl.if_rains} testID="pnl-if-rains" />
             <PnLCard title="If it doesn't" icon="sunny-outline" p={d.pnl.if_dry} testID="pnl-if-dry" />
@@ -258,4 +267,6 @@ const useStyles = makeStyles((c) => ({
   badgeLive: { backgroundColor: c.successSoft },
   badgeText: { fontFamily: fonts.bodyBold, fontSize: 11 },
   empty: { flexDirection: "row", gap: 12, alignItems: "center", padding: 16, borderRadius: 16, backgroundColor: c.warningSoft },
+  banner: { flexDirection: "row", gap: 10, alignItems: "center", padding: 16, borderRadius: 16, backgroundColor: c.brandPrimary },
+  bannerText: { flex: 1, fontFamily: fonts.display, fontSize: 20, color: c.onBrandPrimary },
 }));

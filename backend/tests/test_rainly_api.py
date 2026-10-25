@@ -1,4 +1,4 @@
-# Rainthropic API regression tests (ticker, cities, meta, quote, merchants, dashboard, guarantees, replay)
+# Rainly API regression tests (ticker, cities, meta, quote, merchants, dashboard, guarantees, replay)
 import math
 import os
 import pytest
@@ -89,12 +89,12 @@ def test_seed_merchants(merchants):
 def test_create_merchant_and_get(s):
     meta = s.get(f"{API}/meta", timeout=30).json()
     bt = meta["business_types"][0]
-    r = s.post(f"{API}/merchants", json={"name": "TEST_Rainthropic Merchant", "business_type": bt, "city": "Chicago", "avg_booking": 30, "margin_pct": 0}, timeout=30)
+    r = s.post(f"{API}/merchants", json={"name": "TEST_Rainly Merchant", "business_type": bt, "city": "Chicago", "avg_booking": 30, "margin_pct": 0}, timeout=30)
     assert r.status_code == 200, r.text
     m = r.json()
     assert m["id"] and m["margin_pct"] == 0
     g = s.get(f"{API}/merchants/{m['id']}", timeout=30)
-    assert g.status_code == 200 and g.json()["name"] == "TEST_Rainthropic Merchant"
+    assert g.status_code == 200 and g.json()["name"] == "TEST_Rainly Merchant"
 
 
 def test_create_merchant_invalid_type(s):

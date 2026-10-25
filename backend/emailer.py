@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-logger = logging.getLogger("rainthropic.email")
+logger = logging.getLogger("rainly.email")
 
 # Emergent managed email proxy — constant on purpose (survives deployment).
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
@@ -132,7 +132,7 @@ def refund_email(*, customer_name: str, merchant_name: str, city: str, date_labe
         '<tr><td align="center" style="padding:24px">'
         '<table role="presentation" width="100%" style="max-width:480px;background:#FFFFFF;border-radius:16px">'
         '<tr><td style="background:#2563EB;border-radius:16px 16px 0 0;padding:20px 24px;'
-        'font-family:Arial,sans-serif;color:#FFFFFF;font-size:20px;font-weight:bold">Rainthropic</td></tr>'
+        'font-family:Arial,sans-serif;color:#FFFFFF;font-size:20px;font-weight:bold">Rainly</td></tr>'
         '<tr><td style="padding:24px;font-family:Arial,sans-serif;color:#111827">'
         f'<p style="font-size:16px;margin:0 0 12px">Hi {e(customer_name)},</p>'
         f'<p style="font-size:16px;line-height:24px;margin:0 0 16px">Rain was recorded in {e(city)} on '
@@ -149,7 +149,7 @@ def refund_email(*, customer_name: str, merchant_name: str, city: str, date_labe
         'will return the payment to your original payment method.</p>'
         '</td></tr>'
         '<tr><td style="padding:16px 24px;border-top:1px solid #E5E7EB;font-family:Arial,sans-serif;'
-        'font-size:11px;line-height:16px;color:#6B7280">Sent by Rainthropic on behalf of '
+        'font-size:11px;line-height:16px;color:#6B7280">Sent by Rainly on behalf of '
         f'{e(merchant_name)}. Settled on official Weather Company / NWS station data via Kalshi, '
         'a CFTC-regulated exchange. We never ask for your password or card details by email.</td></tr>'
         '</table></td></tr></table>'
