@@ -115,14 +115,11 @@ export default function Replay() {
           <>
             <View style={styles.setup} testID="replay-setup">
               <Text style={styles.setupText}>
-                {d.would_offer ? "" : "Hypothetical — "}
-                {merchant.data?.name}: {d.bookings} bookings × {money(d.booking_value, 0)} on {niceDate(d.date)}. Rain chance at listing{" "}
-                <Text style={{ fontFamily: fonts.bodyBold }}>{pct(d.entry_p)}</Text> → refund priced {money(d.price_each)} each.
+                {d.bookings} bookings × {money(d.booking_value, 0)} · <Text style={{ fontFamily: fonts.bodyBold }}>{pct(d.entry_p)}</Text> rain chance at listing
               </Text>
-              <Text style={styles.caption}>Entry price: {d.entry_source}</Text>
               {!d.would_offer ? (
                 <Text style={[styles.caption, { color: colors.warningText }]} testID="replay-not-offered-note">
-                  Above the 60% cap — in reality Rainly would have shown &quot;High rain risk&quot; and sold no refunds that day. Numbers below show what would have happened if it had.
+                  Above the 60% cap — Rainly wouldn&apos;t have sold refunds this day.
                 </Text>
               ) : null}
             </View>
@@ -161,7 +158,6 @@ export default function Replay() {
                   Fees {money(d.premiums)} − hedge {money(d.hedge_cost)}
                   {rained ? ` − refunds ${money(d.refunds)} + payout ${money(d.payout)}` : ""}
                 </Text>
-                <Text style={[styles.caption, { marginTop: 8 }]}>{d.rules_primary}</Text>
               </Animated.View>
             ) : null}
 

@@ -257,8 +257,8 @@ async def orderbook(ticker: str) -> dict:
     yes_bids = [(f(p), f(s)) for p, s in (ob.get("yes_dollars") or [])]
     no_bids = [(f(p), f(s)) for p, s in (ob.get("no_dollars") or [])]
     # YES asks come from NO bids: ask = 1 - no_bid. Best NO bid is last.
-    asks = sorted([(round(1 - p, 2), s) for p, s in no_bids], key=lambda x: x[0])
-    bids = sorted(yes_bids, key=lambda x: -x[0])
+    asks = sorted([(round(1 - p, 2), s) for p, s in no_bids if s > 0], key=lambda x: x[0])
+    bids = sorted([b for b in yes_bids if b[1] > 0], key=lambda x: -x[0])
     return {"asks": asks, "bids": bids}
 
 

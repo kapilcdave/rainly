@@ -7,10 +7,11 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import { api, Merchant, Quote } from "@/src/api";
 import { makeStyles, useTheme } from "@/src/theme";
-import { BUSINESS_LABELS, fonts, money, niceDate, pct } from "@/src/format";
+import { BUSINESS_LABELS, fonts, money, pct } from "@/src/format";
 import { Header } from "@/src/components/Header";
 import { Btn } from "@/src/components/Btn";
 import { PitchFooter } from "@/src/components/Footer";
+import { Disclosure } from "@/src/components/Disclosure";
 
 type PnL = { premiums: number; hedge_cost: number; refunds: number; payout: number; net: number };
 type Order = { id: string; ticker: string; count: number; price: number; fee: number; mode: string; status: string; note?: string; created_at: string };
@@ -56,6 +57,8 @@ export default function Dashboard() {
   const live = d.live;
   const maxSize = Math.max(1, ...d.orderbook.asks.map((a) => a[1]));
   const limit = (live.yes_ask || 0) + 0.03 + 1e-9;
+  const same = d.stats.active > 0 && Math.abs(d.pnl.if_rains.net - d.pnl.if_dry.net) < 1;
+  const worst = Math.min(d.pnl.if_rains.net, d.pnl.if_dry.net);
 
   return (
     <View style={styles.root}>
@@ -81,111 +84,102 @@ export default function Dashboard() {
             <Btn testID="open-replay-button" label="Replay" icon="play-outline" variant="secondary" onPress={() => router.push(`/merchant/${id}/replay`)} />
           </View>
 
-          <Animated.View entering={FadeInDown} style={styles.metrics}>
-            <Metric label="Guarantees sold" value={String(d.stats.guarantees_sold)} testID="metric-guarantees" big />
-            <Metric label="Contracts held" value={String(d.stats.contracts_held)} testID="metric-contracts" big />
+          <Animated.View entering={FadeInDown} style={styles.hero} testID={same ? "same-profit-banner" : "profit-hero"}>
+            <Text style={styles.heroLabel}>{same ? "Profit, rain or shine" : "Profit on open bookings"}</Text>
+            <Text style={styles.heroBig}>
+              {worst >= 0 ? "+" : ""}
+              {money(worst)}
+            </Text>
+            <View style={styles.heroStats}>
+              <Text style={styles.heroStat} testID="metric-guarantees">
+                <Text style={styles.heroStatNum}>{d.stats.guarantees_sold}</Text> guarantees
+              </Text>
+              <Text style={styles.heroStat} testID="metric-contracts">
+                <Text style={styles.heroStatNum}>{d.stats.contracts_held.toLocaleString()}</Text> contracts held
+              </Text>
+            </View>
           </Animated.View>
-          <View style={styles.metrics}>
-            <Metric label="Hedge cost" value={money(d.stats.hedge_cost)} testID="metric-hedge-cost" />
-            <Metric label="Refund fees collected" value={money(d.stats.premiums)} testID="metric-premiums" />
-          </View>
           {d.stats.refunded + d.stats.expired > 0 ? (
             <Text style={styles.caption} testID="settled-summary">
-              Settled: {d.stats.refunded} refunded · {d.stats.expired} expired dry · {d.stats.refund_emails_sent} refund emails sent
+              Settled: {d.stats.refunded} refunded · {d.stats.expired} dry · {d.stats.refund_emails_sent} refund emails sent
             </Text>
           ) : null}
 
           {d.stats.active === 0 ? (
             <View style={styles.empty} testID="dashboard-empty">
-              <Ionicons name="sunny-outline" size={28} color={colors.warningText} />
-              <Text style={styles.body}>No active guarantees yet. Open the checkout widget to sell your first rain refund.</Text>
+              <Ionicons name="sunny-outline" size={24} color={colors.warningText} />
+              <Text style={styles.body}>No open guarantees yet. Sell your first one from the checkout.</Text>
             </View>
-          ) : null}
+          ) : (
+            <>
+              <View style={styles.metrics}>
+                <PnLCard title="If it rains" icon="rainy-outline" p={d.pnl.if_rains} testID="pnl-if-rains" />
+                <PnLCard title="If it doesn't" icon="sunny-outline" p={d.pnl.if_dry} testID="pnl-if-dry" />
+              </View>
+              <Disclosure label="See the math" testID="pnl-math-toggle">
+                <View style={styles.mathBox}>
+                  <Line k="Refund fees collected" v={money(d.stats.premiums)} />
+                  <Line k="Hedge cost (contracts + fees)" v={`−${money(d.stats.hedge_cost)}`} />
+                  <Line k="If it rains: refunds paid" v={`−${money(d.pnl.if_rains.refunds)}`} />
+                  <Line k="If it rains: Kalshi pays out" v={`+${money(d.pnl.if_rains.payout)}`} />
+                </View>
+              </Disclosure>
+            </>
+          )}
 
-          <Text style={styles.h2}>Open position · P&amp;L</Text>
-          {d.stats.active > 0 && Math.abs(d.pnl.if_rains.net - d.pnl.if_dry.net) < 1 ? (
-            <View style={styles.banner} testID="same-profit-banner">
-              <Ionicons name="umbrella" size={20} color={colors.onBrandPrimary} />
-              <Text style={styles.bannerText}>
-                Same profit rain or shine: {d.pnl.if_dry.net >= 0 ? "+" : ""}
-                {money(Math.min(d.pnl.if_rains.net, d.pnl.if_dry.net))}
-              </Text>
-            </View>
-          ) : null}
-          <View style={styles.metrics}>
-            <PnLCard title="If it rains" icon="rainy-outline" p={d.pnl.if_rains} testID="pnl-if-rains" />
-            <PnLCard title="If it doesn't" icon="sunny-outline" p={d.pnl.if_dry} testID="pnl-if-dry" />
-          </View>
-
-          <Text style={styles.h2}>Live market · {d.merchant.city} weekend</Text>
+          <Text style={styles.h2}>This weekend in {d.merchant.city}</Text>
           <View style={styles.card} testID="live-market-card">
             <View style={styles.rowBetween}>
               <View>
-                <Text style={styles.caption}>YES ask (rain chance)</Text>
+                <Text style={styles.caption}>Rain chance</Text>
                 <Text style={styles.huge} testID="live-yes-ask">
                   {live.yes_ask !== undefined ? pct(live.yes_ask) : "—"}
                 </Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.caption}>Refund price @ {money(d.merchant.avg_booking, 0)}</Text>
+                <Text style={styles.caption}>Refund on a {money(d.merchant.avg_booking, 0)} booking</Text>
                 <Text style={styles.priceBig} testID="live-refund-price">
                   {live.available ? money(live.price) : live.reason}
                 </Text>
               </View>
             </View>
-            <Text style={styles.mono}>
-              {live.ticker || live.event_ticker} · {niceDate(live.date)}
-              {live.volume !== undefined ? ` · vol ${Math.round(live.volume)}` : ""}
-            </Text>
-            {live.rules_primary ? (
-              <View style={styles.trigger}>
-                <Text style={styles.triggerLabel}>Official trigger</Text>
-                <Text style={styles.triggerText}>{live.rules_primary}</Text>
-              </View>
-            ) : null}
             {live.available && !live.depth_ok ? (
               <View style={styles.warn} testID="depth-warning">
                 <Ionicons name="warning-outline" size={16} color={colors.warningText} />
-                <Text style={styles.warnText}>
-                  Thin book: only {live.depth_within_3c} contracts available within 3¢ of the ask ({live.contracts} needed per booking).
-                </Text>
+                <Text style={styles.warnText}>Thin order book — hedges may fill a little above this price.</Text>
               </View>
             ) : null}
-
-            <Text style={[styles.triggerLabel, { marginTop: 16 }]}>Order book · YES asks</Text>
-            {d.orderbook.asks.length === 0 ? <Text style={styles.caption}>No asks on the book.</Text> : null}
-            {d.orderbook.asks.map(([price, size], i) => (
-              <View key={`${price}-${i}`} style={styles.bookRow} testID={`orderbook-ask-${i}`}>
-                <View style={[styles.bookBar, { width: `${(size / maxSize) * 100}%`, backgroundColor: price <= limit ? colors.brandSecondary : colors.surfaceSecondary }]} />
-                <Text style={styles.bookPrice}>{Math.round(price * 100)}¢</Text>
-                <Text style={styles.bookSize}>{Math.round(size).toLocaleString()} contracts</Text>
-              </View>
-            ))}
-            <Text style={styles.caption}>Highlighted rows are within 3¢ of the best ask.</Text>
+            {live.rules_primary ? (
+              <Disclosure label="Official trigger" testID="live-trigger-toggle">
+                <Text style={styles.triggerText}>{live.rules_primary}</Text>
+              </Disclosure>
+            ) : null}
+            <Disclosure label="Order book" testID="orderbook-toggle">
+              {d.orderbook.asks.length === 0 ? <Text style={styles.caption}>No asks on the book.</Text> : null}
+              {d.orderbook.asks.slice(0, 5).map(([price, size], i) => (
+                <View key={`${price}-${i}`} style={styles.bookRow} testID={`orderbook-ask-${i}`}>
+                  <View style={[styles.bookBar, { width: `${(size / maxSize) * 100}%`, backgroundColor: price <= limit ? colors.brandSecondary : colors.surfaceSecondary }]} />
+                  <Text style={styles.bookPrice}>{Math.round(price * 100)}¢</Text>
+                  <Text style={styles.bookSize}>{Math.round(size).toLocaleString()}</Text>
+                </View>
+              ))}
+              <Text style={[styles.mono, { marginTop: 4 }]}>{live.ticker || live.event_ticker}</Text>
+            </Disclosure>
           </View>
 
-          <Text style={styles.h2}>Hedge order log</Text>
+          <Text style={styles.h2}>Hedge orders</Text>
           <View style={styles.card} testID="hedge-order-log">
             {d.orders.length === 0 ? <Text style={styles.caption}>No hedge orders yet.</Text> : null}
-            {d.orders.slice(0, 20).map((o, i) => (
-              <View key={o.id} style={[styles.orderRow, i > 0 && styles.divider]} testID={`order-row-${i}`}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.orderMain}>
-                    Buy {o.count} YES @ {Math.round(o.price * 100)}¢
-                  </Text>
-                  <Text style={styles.mono} numberOfLines={1}>
-                    {o.ticker} · fee {money(o.fee)}
-                  </Text>
-                  {o.note ? <Text style={styles.caption}>{o.note}</Text> : null}
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.orderMain}>{money(o.count * o.price + o.fee)}</Text>
-                  <Text style={[styles.caption, { color: o.mode === "mock" ? colors.warningText : colors.successText }]}>
-                    {o.mode === "mock" ? "mock fill" : `demo · ${o.status}`}
-                  </Text>
-                </View>
-              </View>
+            {d.orders.slice(0, 3).map((o, i) => (
+              <OrderRow key={o.id} o={o} i={i} />
             ))}
+            {d.orders.length > 3 ? (
+              <Disclosure label={`Show all ${d.orders.length}`} testID="orders-show-all">
+                {d.orders.slice(3, 50).map((o, i) => (
+                  <OrderRow key={o.id} o={o} i={i + 3} />
+                ))}
+              </Disclosure>
+            ) : null}
           </View>
         </View>
         <PitchFooter />
@@ -193,11 +187,13 @@ export default function Dashboard() {
     </View>
   );
 
-  function Metric({ label, value, testID, big }: { label: string; value: string; testID: string; big?: boolean }) {
+  function OrderRow({ o, i }: { o: Order; i: number }) {
     return (
-      <View style={styles.metric} testID={testID}>
-        <Text style={styles.caption}>{label}</Text>
-        <Text style={big ? styles.huge : styles.value}>{value}</Text>
+      <View style={[styles.orderRow, i > 0 && styles.divider]} testID={`order-row-${i}`}>
+        <Text style={[styles.orderMain, { flex: 1 }]}>
+          {o.count} contracts @ {Math.round(o.price * 100)}¢
+        </Text>
+        <Text style={styles.orderMain}>{money(o.count * o.price + o.fee)}</Text>
       </View>
     );
   }
@@ -205,7 +201,7 @@ export default function Dashboard() {
   function PnLCard({ title, icon, p, testID }: { title: string; icon: string; p: PnL; testID: string }) {
     const pos = p.net >= 0;
     return (
-      <View style={[styles.metric, { backgroundColor: pos ? colors.successSoft : colors.errorSoft }]} testID={testID}>
+      <View style={styles.metric} testID={testID}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Ionicons name={icon as any} size={16} color={colors.onSurfaceSecondary} />
           <Text style={styles.cardTitle}>{title}</Text>
@@ -214,10 +210,6 @@ export default function Dashboard() {
           {pos ? "+" : ""}
           {money(p.net)}
         </Text>
-        <Line k="Fees in" v={money(p.premiums)} />
-        <Line k="Hedge cost" v={p.hedge_cost ? `−${money(p.hedge_cost)}` : "$0"} />
-        <Line k="Refunds" v={p.refunds ? `−${money(p.refunds)}` : "$0"} />
-        <Line k="Kalshi payout" v={p.payout ? `+${money(p.payout)}` : "$0"} />
       </View>
     );
   }
@@ -260,8 +252,8 @@ const useStyles = makeStyles((c) => ({
   orderRow: { flexDirection: "row", gap: 8, paddingVertical: 10 },
   divider: { borderTopWidth: 1, borderTopColor: c.divider },
   orderMain: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.onSurface },
-  lineK: { fontFamily: fonts.body, fontSize: 11, color: c.muted },
-  lineV: { fontFamily: fonts.displayMd, fontSize: 11, color: c.onSurfaceSecondary },
+  lineK: { fontFamily: fonts.body, fontSize: 13, color: c.onSurfaceSecondary },
+  lineV: { fontFamily: fonts.displayMd, fontSize: 13, color: c.onSurface },
   badge: { paddingHorizontal: 10, height: 28, borderRadius: 999, justifyContent: "center" },
   badgeMock: { backgroundColor: c.warningSoft },
   badgeLive: { backgroundColor: c.successSoft },
@@ -269,4 +261,11 @@ const useStyles = makeStyles((c) => ({
   empty: { flexDirection: "row", gap: 12, alignItems: "center", padding: 16, borderRadius: 16, backgroundColor: c.warningSoft },
   banner: { flexDirection: "row", gap: 10, alignItems: "center", padding: 16, borderRadius: 16, backgroundColor: c.brandPrimary },
   bannerText: { flex: 1, fontFamily: fonts.display, fontSize: 20, color: c.onBrandPrimary },
+  hero: { padding: 20, borderRadius: 24, backgroundColor: c.brandPrimary },
+  heroLabel: { fontFamily: fonts.bodySemi, fontSize: 14, color: c.heroMuted },
+  heroBig: { fontFamily: fonts.display, fontSize: 48, color: c.onBrandPrimary, letterSpacing: -1, marginTop: 4 },
+  heroStats: { flexDirection: "row", gap: 16, marginTop: 8 },
+  heroStat: { fontFamily: fonts.body, fontSize: 13, color: c.heroMuted },
+  heroStatNum: { fontFamily: fonts.bodyBold, color: c.onBrandPrimary },
+  mathBox: { padding: 12, borderRadius: 12, backgroundColor: c.surfaceSecondary, gap: 6 },
 }));
